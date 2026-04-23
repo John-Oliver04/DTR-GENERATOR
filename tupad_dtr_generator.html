@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <title>TUPAD DTR Generator</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='8' fill='%231a5490'/><rect x='15' y='20' width='70' height='65' rx='3' fill='white'/><line x1='15' y1='35' x2='85' y2='35' stroke='%231a5490' stroke-width='3'/><circle cx='50' cy='55' r='18' fill='none' stroke='%231a5490' stroke-width='4'/><line x1='50' y1='55' x2='50' y2='43' stroke='%231a5490' stroke-width='4' stroke-linecap='round'/><line x1='50' y1='55' x2='60' y2='55' stroke='%231a5490' stroke-width='3' stroke-linecap='round'/></svg>">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='8' fill='%231a5490'/><rect x='15' y='20' width='70' height='65' rx='3' fill='white'/><line x1='15' y1='35' x2='85' y2='35' stroke='%231a5490' stroke-width='3'/><circle cx='50' cy='55' r='18' fill='none' stroke='%231a5490' stroke-width='4'/><line x1='50' y1='55' x2='50' y2='43' stroke='%231a5490' stroke-width='4' stroke-linecap='round'/><line x1='50' y1='55' x2='60' y2='55' stroke='%231a5490' stroke-width='3' stroke-linecap='round'/></svg>">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 /* ===========================================================
@@ -29,6 +31,9 @@ body {
     align-items: center;
     box-shadow: 0 2px 6px rgba(0,0,0,0.15);
     border-bottom: 2px solid #999;
+}
+.menu-bar .spacer {
+    flex: 1;
 }
 .menu-bar button {
     padding: 8px 16px;
@@ -96,6 +101,14 @@ body {
     position: sticky;
     top: 0;
 }
+.modal-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.modal-icon {
+    font-size: 20px;
+}
 .modal-header button.close-modal {
     background: none;
     border: none;
@@ -142,17 +155,15 @@ body {
     gap: 8px;
     justify-content: flex-end;
 }
-.modal-footer button {
-    padding: 8px 16px;
-    font-family: Arial, sans-serif;
-    font-size: 13px;
-    font-weight: bold;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
 .modal-footer .btn-save   { background: #1a5490; color: #fff; }
 .modal-footer .btn-cancel { background: #666; color: #fff; }
+.modal-dev {
+    padding: 8px 20px 12px;
+    text-align: center;
+    font-family: Arial, sans-serif;
+    font-size: 10px;
+    color: #999;
+}
 
 /* ===========================================================
    DTR PAGE — Bond Paper 8.5 × 13, Landscape
@@ -363,6 +374,7 @@ body {
     <button class="btn-template" onclick="downloadTemplate()">⬇ Download Template</button>
     <button class="btn-details" onclick="openModal()">📋 Show Details</button>
     <button class="btn-print" onclick="window.print()">🖨 Print</button>
+    <span class="spacer"></span>
     <button class="btn-upload" onclick="document.getElementById('fileInput').click()">📁 Upload Excel</button>
     <span class="upload-status" id="uploadStatus"></span>
     <span class="page-count" id="pageCount"></span>
@@ -371,7 +383,7 @@ body {
 <div class="modal-overlay" id="detailsModal">
     <div class="modal">
         <div class="modal-header">
-            DTR Details
+            <span class="modal-title"><span class="modal-icon">ℹ️</span> DTR Details</span>
             <button class="close-modal" onclick="closeModal()">×</button>
         </div>
         <div class="modal-body">
@@ -412,6 +424,7 @@ Pedro R. Dela Cruz, 003, Brgy. Buenavista, Sablayan</textarea>
             <button class="btn-cancel" onclick="closeModal()">Cancel</button>
             <button class="btn-save" onclick="saveDetails()">Save & Generate</button>
         </div>
+        <div class="modal-dev">Developer: J_Virola</div>
     </div>
 </div>
 
