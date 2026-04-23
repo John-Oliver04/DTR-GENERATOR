@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>TUPAD DTR Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* ===========================================================
+   MENU BAR — fixed top, left-aligned buttons
+   =========================================================== */
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    font-family: "Arial Narrow", Arial, sans-serif;
+    background: #eee;
+    color: #000;
+    padding-top: 52px;
+}
+.menu-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: #fff;
+    padding: 8px 16px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    border-bottom: 2px solid #999;
+}
+.menu-bar button {
+    padding: 8px 16px;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    font-weight: bold;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.menu-bar button:hover { opacity: 0.9; }
+.menu-bar .btn-template { background: #666; }
+.menu-bar .btn-details  { background: #1a5490; }
+.menu-bar .btn-print    { background: #444; }
+.menu-bar .btn-upload  { background: #2d7d3f; }
+.page-count {
+    margin-left: 16px;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    font-weight: bold;
+    color: #1a5490;
+}
+.upload-status {
+    margin-left: 12px;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    color: #2d7d3f;
+    font-weight: bold;
+}
+.upload-status.error { color: #c0392b; }
+#fileInput { display: none; }
+
+/* ===========================================================
+   MODAL — Details form
+   =========================================================== */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+    background: #fff;
+    border-radius: 8px;
+    width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+.modal-header {
+    padding: 16px 20px;
+    background: #1a5490;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    font-size: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+}
+.modal-header button.close-modal {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 22px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+.modal-body {
+    padding: 20px;
+}
+.modal-body .form-row {
+    margin-bottom: 12px;
+}
+.modal-body label {
+    display: block;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+.modal-body input[type="text"],
+.modal-body textarea {
+    width: 100%;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    padding: 6px 8px;
+    border: 1px solid #999;
+    border-radius: 4px;
+}
+.modal-body textarea { min-height: 100px; font-family: monospace; font-size: 12px; }
+.modal-body .hint {
+    font-family: Arial, sans-serif;
+    font-size: 10px;
+    color: #666;
+    font-style: italic;
+    margin-top: 4px;
+}
+.modal-footer {
+    padding: 12px 20px;
+    border-top: 1px solid #ddd;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+.modal-footer button {
+    padding: 8px 16px;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    font-weight: bold;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.modal-footer .btn-save   { background: #1a5490; color: #fff; }
+.modal-footer .btn-cancel { background: #666; color: #fff; }
+
+/* ===========================================================
+   DTR PAGE — Bond Paper 8.5 × 13, Landscape
+   =========================================================== */
+.page {
+    width: 13in;
+    height: 9.2in;
+    background: #fff;
+    margin: 20px auto;
+    padding: 0.08in 0.15in 0.08in 0.15in;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    page-break-after: always;
+    page-break-inside: avoid;
+    overflow:visible;
+}
+.page:last-child { page-break-after: auto; }
+
+.dtr {
+    display: flex;
+    flex-direction: column;
+    font-family: "Arial Narrow", Arial, sans-serif;
+    font-size: 10pt;
+    overflow: hidden;
+}
+.dtr:nth-child(1),
+.dtr:nth-child(2),
+.dtr:nth-child(3) {
+    border-right: 1px dashed #999;
+    margin-right: 0.08in;
+}
+.page:last-child { page-break-after: auto; }
+
+
+.dtr:nth-child(1),
+.dtr:nth-child(2),
+.dtr:nth-child(3) {
+    border-right: 1px dashed #999;
+}
+
+.dtr {
+    display: flex;
+    flex-direction: column;
+    font-family: "Arial Narrow", Arial, sans-serif;
+    font-size: 10pt;
+    overflow: hidden;
+}
+.dtr:nth-child(1),
+.dtr:nth-child(2),
+.dtr:nth-child(3) {
+    margin-left: 10px;
+    border-right: 1px dashed #999;
+    padding-right: calc(0.35in / 2);
+}
+.dtr .annex {
+    font-size: 10pt;
+    font-weight: bold;
+    text-align: center;
+    line-height: 1.1;
+}
+.dtr .title {
+    font-size: 10pt;
+    font-weight: bold;
+    text-align: center;
+    line-height: 1.1;
+    margin-bottom: 2pt;
+}
+
+/* Header fields — label + underlined value */
+.dtr .field {
+    font-size: 9pt;
+    line-height: 1.15;
+    margin-bottom: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 2pt;
+}
+.dtr .field .label {
+    font-weight: bold;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.dtr .field .value {
+    flex: 1;
+    border-bottom: 1px solid #000;
+    padding: 0 2pt 1pt 2pt;
+    min-height: 11pt;
+    font-size: 9pt;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.dtr.sample .field .value.filled {
+    font-weight: bold;
+}
+
+.dtr table.dtr-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 2pt;
+    table-layout: fixed;
+}
+.dtr table.dtr-table th,
+.dtr table.dtr-table td {
+    border: 1px solid #000;
+    padding: 0;
+    text-align: center;
+    font-size:9pt;
+    height: 13.5pt;
+    line-height: 1;
+    font-family: "Arial Narrow", Arial, sans-serif;
+}
+.dtr table.dtr-table th {
+    font-weight: bold;
+    font-size: 8pt;
+}
+.dtr table.dtr-table .date-col { width: 6%; }
+.dtr table.dtr-table .time-col { width: 21.75%; }
+
+.dtr .cert {
+    font-size: 6.5pt;
+    line-height: 1.1;
+    margin-top: 2pt;
+    text-align: justify;
+}
+.dtr .sig-block {
+    margin-top: 20pt;
+    text-align: left;
+    font-size: 7pt;
+    line-height: 1.1;
+    padding-left: 3pt;
+}
+.dtr .sig-line {
+    border-top: 1px solid #000;
+    width: 65%;
+    margin: 6pt 0 0 0;
+}
+.dtr .sig-role {
+    font-size: 6pt;
+    line-height: 1.1;
+}
+.dtr .verified {
+    font-size: 7pt;
+    margin-top: 10pt;
+    font-weight: bold;
+}
+.dtr .verifier {
+    margin-top: 2pt;
+    text-align: center;
+    font-size: 6.5pt;
+    line-height: 1.05;
+}
+.dtr .verifier-name {
+    font-weight: bold;
+    font-size: 7.5pt;
+}
+
+/* Sample copy — signature script */
+.dtr.sample .sig-line { border-top: 1px solid transparent; }
+.dtr.sample .sig-line::before {
+    content: "Permahan";
+    font-family: 'Brush Script MT', 'Lucida Handwriting', cursive;
+    font-size: 9pt;
+    font-style: italic;
+    display: block;
+    text-align: left;
+    margin-top: -6pt;
+    padding-bottom: 2pt;
+    padding-left: 4pt;
+    border-bottom: 1px solid #000;
+    width: 65%;
+}
+
+/* ===========================================================
+   PRINT STYLES
+   =========================================================== */
+@media print {
+    @page {
+        size: 13in 8.5in landscape;
+        margin: 0;
+    }
+    body { background: #fff; margin: 0; padding: 0; }
+    .menu-bar, .no-print { display: none !important; }
+    .page {
+        margin: 0;
+        box-shadow: none;
+        width: 13in;
+        height: 8.5in;
+        padding: 0.08in 0.15in 0.08in 0.15in;
+    }
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #666;
+    font-family: Arial, sans-serif;
+}
+.empty-state h2 { color: #333; }
+</style>
+</head>
+<body>
+
+<div class="menu-bar no-print">
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none">
+    <button class="btn-template" onclick="downloadTemplate()">⬇ Download Template</button>
+    <button class="btn-details" onclick="openModal()">📋 Show Details</button>
+    <button class="btn-print" onclick="window.print()">🖨 Print</button>
+    <button class="btn-upload" onclick="document.getElementById('fileInput').click()">📁 Upload Excel</button>
+    <span class="upload-status" id="uploadStatus"></span>
+    <span class="page-count" id="pageCount"></span>
+</div>
+
+<div class="modal-overlay" id="detailsModal">
+    <div class="modal">
+        <div class="modal-header">
+            DTR Details
+            <button class="close-modal" onclick="closeModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-row">
+                <label>TUPAD ID Prefix:</label>
+                <input type="text" id="m-idPrefix" value="TUPAD-2026-03-0167-PAL-" placeholder="e.g. TUPAD-2026-03-0167-PAL-">
+                <div class="hint">ID suffix (e.g. 001) is appended per beneficiary</div>
+            </div>
+            <div class="form-row">
+                <label>Periods:</label>
+                <textarea id="m-periods" placeholder="One per line. Format: Period | Work Days&#10;Example:&#10;April 24-30, 2026 | 24-30&#10;May 1-5, 2026 | 1-5">April 24-30, 2026 | 24-30</textarea>
+                <div class="hint">Format: Period text | Days (e.g. 24-30 or 1-5)</div>
+            </div>
+            <div class="form-row">
+                <label>Beneficiaries:</label>
+                <textarea id="m-beneficiaries" placeholder="One per line. Format: Full Name, ID suffix, Address">Juan D. Cruz, 001, Brgy. San Jose, Sablayan
+Maria L. Santos, 002, Brgy. Poblacion, Sablayan
+Pedro R. Dela Cruz, 003, Brgy. Buenavista, Sablayan</textarea>
+            </div>
+            <div class="form-row">
+                <label>PESO Manager:</label>
+                <input type="text" id="m-pesoManager" value="JESSICA B. GUPILAN">
+            </div>
+            <div class="form-row">
+                <label>Verified By:</label>
+                <input type="text" id="m-verifier" value="GENER L. FRANCISCO">
+            </div>
+            <div class="form-row">
+                <label>Verifier Title:</label>
+                <input type="text" id="m-verifierTitle" value="OIC-Provincial Office Head">
+            </div>
+            <div class="form-row">
+                <label>Office:</label>
+                <input type="text" id="m-office" value="Occidental Mindoro Provincial Office">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+            <button class="btn-save" onclick="saveDetails()">Save & Generate</button>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden fields for data storage -->
+<input type="hidden" id="idPrefix" value="TUPAD-2026-03-0167-PAL-">
+<textarea id="periods" style="display:none">April 24-30, 2026 | 24-30</textarea>
+<textarea id="beneficiaries" style="display:none"></textarea>
+<input type="hidden" id="pesoManager" value="JESSICA B. GUPILAN">
+<input type="hidden" id="verifier" value="GENER L. FRANCISCO">
+<input type="hidden" id="verifierTitle" value="OIC-Provincial Office Head">
+<input type="hidden" id="office" value="Occidental Mindoro Provincial Office">
+
+<div id="output"></div>
+
+<script>
+// ===========================================================
+// Modal functions
+// ===========================================================
+function openModal() {
+    // Sync values FROM main fields TO modal
+    document.getElementById('m-idPrefix').value     = document.getElementById('idPrefix').value;
+    document.getElementById('m-periods').value      = document.getElementById('periods').value;
+    document.getElementById('m-beneficiaries').value = document.getElementById('beneficiaries').value;
+    document.getElementById('m-pesoManager').value  = document.getElementById('pesoManager').value;
+    document.getElementById('m-verifier').value     = document.getElementById('verifier').value;
+    document.getElementById('m-verifierTitle').value = document.getElementById('verifierTitle').value;
+    document.getElementById('m-office').value       = document.getElementById('office').value;
+    document.getElementById('detailsModal').classList.add('show');
+}
+
+function closeModal() {
+    document.getElementById('detailsModal').classList.remove('show');
+}
+
+function saveDetails() {
+    // Sync values FROM modal TO main fields
+    document.getElementById('idPrefix').value     = document.getElementById('m-idPrefix').value;
+    document.getElementById('periods').value       = document.getElementById('m-periods').value;
+    document.getElementById('beneficiaries').value = document.getElementById('m-beneficiaries').value;
+    document.getElementById('pesoManager').value  = document.getElementById('m-pesoManager').value;
+    document.getElementById('verifier').value     = document.getElementById('m-verifier').value;
+    document.getElementById('verifierTitle').value = document.getElementById('m-verifierTitle').value;
+    document.getElementById('office').value       = document.getElementById('m-office').value;
+    closeModal();
+    generate();
+}
+
+// Close modal on overlay click
+document.getElementById('detailsModal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+});
+
+// ===========================================================
+// Excel upload handling
+// ===========================================================
+document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+
+function handleFileUpload(e) {
+    const file = e.target.files[0];
+    const status = document.getElementById('uploadStatus');
+    if (!file) return;
+
+    status.className = 'upload-status';
+    status.textContent = 'Reading file...';
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        try {
+            const data = new Uint8Array(event.target.result);
+            const wb = XLSX.read(data, { type: 'array' });
+            const sheet = wb.Sheets[wb.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
+
+            if (rows.length === 0) {
+                status.className = 'upload-status error';
+                status.textContent = '⚠ No data rows found in the file.';
+                return;
+            }
+
+            // Find columns by flexible header names
+            const keys = Object.keys(rows[0]);
+            const findKey = (patterns) => {
+                for (const k of keys) {
+                    const low = k.toLowerCase().trim();
+                    for (const p of patterns) {
+                        if (low.includes(p)) return k;
+                    }
+                }
+                return null;
+            };
+
+            const nameKey   = findKey(['name', 'pangalan']);
+            const idKey     = findKey(['id', 'suffix', 'no.', 'number']);
+            const addrKey   = findKey(['address', 'tirahan']);
+            const prefixKey = findKey(['prefix']);
+
+            if (!nameKey) {
+                status.className = 'upload-status error';
+                status.textContent = '⚠ Could not find a "Name" column. Please include a column named "Name".';
+                return;
+            }
+
+            const lines = [];
+            let firstPrefix = '';
+            // For periods: collect unique (period | days) combinations
+            const periodSet = new Map(); // period text -> days text
+
+            rows.forEach((r, i) => {
+                const name = String(r[nameKey] || '').trim();
+                if (!name) return;
+                const id   = idKey   ? String(r[idKey]   || '').trim() : '';
+                const addr = addrKey ? String(r[addrKey] || '').trim() : '';
+                lines.push([name, id, addr].join(', '));
+
+                if (i === 0) {
+                    if (prefixKey) firstPrefix = String(r[prefixKey] || '').trim();
+                }
+
+                // Find period columns
+                const monthKey  = findKey(['month', 'period', 'buwan']);
+                const daysKey   = findKey(['work day', 'workday', 'days']);
+                if (monthKey || daysKey) {
+                    const monthVal = monthKey ? String(r[monthKey] || '').trim() : '';
+                    const daysVal  = daysKey  ? String(r[daysKey]  || '').trim() : '';
+                    if (monthVal || daysVal) {
+                        const key = monthVal + '|' + daysVal;
+                        if (!periodSet.has(key)) {
+                            periodSet.set(key, { period: monthVal, days: daysVal });
+                        }
+                    }
+                }
+            });
+
+            document.getElementById('beneficiaries').value = lines.join('\n');
+            if (firstPrefix) document.getElementById('idPrefix').value = firstPrefix;
+
+            // Build periods text
+            if (periodSet.size > 0) {
+                const periodsLines = Array.from(periodSet.values())
+                    .map(p => `${p.period} | ${p.days}`)
+                    .join('\n');
+                document.getElementById('periods').value = periodsLines;
+            }
+
+            status.className = 'upload-status';
+            status.textContent = `✓ Loaded ${lines.length} beneficiar${lines.length === 1 ? 'y' : 'ies'} from ${file.name}`;
+
+            generate();
+        } catch (err) {
+            console.error(err);
+            status.className = 'upload-status error';
+            status.textContent = '⚠ Error reading file: ' + err.message;
+        }
+    };
+    reader.onerror = function() {
+        status.className = 'upload-status error';
+        status.textContent = '⚠ Failed to read file.';
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function downloadTemplate() {
+    const ws_data = [
+        ['Name', 'ID', 'Address', 'TUPAD ID Prefix', 'Period', 'Work Days'],
+        ['Juan D. Cruz',       '001', 'Brgy. San Jose, Sablayan',   'TUPAD-2026-03-0167-PAL-', 'April 24-30, 2026', '24-30'],
+        ['Juan D. Cruz',       '001', 'Brgy. San Jose, Sablayan',   'TUPAD-2026-03-0167-PAL-', 'May 1-5, 2026', '1-5'],
+        ['Maria L. Santos',    '002', 'Brgy. Poblacion, Sablayan',  '', '', ''],
+        ['Maria L. Santos',    '002', 'Brgy. Poblacion, Sablayan',  '', '', ''],
+        ['Pedro R. Dela Cruz', '003', 'Brgy. Buenavista, Sablayan', '', '', ''],
+        ['Pedro R. Dela Cruz', '003', 'Brgy. Buenavista, Sablayan', '', '', ''],
+    ];
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(ws_data);
+    ws['!cols'] = [{ wch: 25 }, { wch: 8 }, { wch: 35 }, { wch: 28 }, { wch: 22 }, { wch: 12 }];
+    XLSX.utils.book_append_sheet(wb, ws, 'Beneficiaries');
+    XLSX.writeFile(wb, 'TUPAD_DTR_Beneficiaries_Template.xlsx');
+}
+
+// ===========================================================
+// DTR generation
+// ===========================================================
+function parseWorkDays(str) {
+    const days = new Set();
+    if (!str) return days;
+    const parts = str.split(',');
+    for (const part of parts) {
+        const p = part.trim();
+        if (p.includes('-')) {
+            const [a, b] = p.split('-').map(n => parseInt(n.trim(), 10));
+            if (!isNaN(a) && !isNaN(b)) {
+                for (let i = a; i <= b; i++) days.add(i);
+            }
+        } else {
+            const n = parseInt(p, 10);
+            if (!isNaN(n)) days.add(n);
+        }
+    }
+    return days;
+}
+
+function parsePeriods(text) {
+    const periods = [];
+    const lines = text.split('\n');
+    for (const line of lines) {
+        const t = line.trim();
+        if (!t) continue;
+        // Split by | to get period and work days
+        const parts = t.split('|').map(s => s.trim());
+        if (parts.length >= 2) {
+            periods.push({
+                period: parts[0],
+                workDays: parseWorkDays(parts[1])
+            });
+        } else if (parts.length === 1 && parts[0]) {
+            // Default: no work days specified, just period text
+            periods.push({
+                period: parts[0],
+                workDays: new Set()
+            });
+        }
+    }
+    return periods;
+}
+
+function parseBeneficiaries(str) {
+    const list = [];
+    const lines = str.split('\n');
+    for (const line of lines) {
+        const t = line.trim();
+        if (!t) continue;
+        const parts = t.split(',').map(s => s.trim());
+        const name = parts[0] || '';
+        const idSuffix = parts[1] || '';
+        // Address may contain commas — join remaining parts
+        const address = parts.slice(2).join(', ');
+        if (name) list.push({ name, idSuffix, address });
+    }
+    return list;
+}
+
+function escapeHtml(s) {
+    if (s == null) return '';
+    return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function buildDTR(data, isSample) {
+    const {
+        name, tupadId, address, period,
+        pesoManager, verifier, verifierTitle, office,
+        workDays
+    } = data;
+
+    // Build table rows — dates 1..31
+    let tableRows = '';
+    for (let d = 1; d <= 31; d++) {
+        const filled = isSample && workDays.has(d);
+        const amIn  = filled ? '8:00'  : '';
+        const amOut = filled ? '12:00' : '';
+        const pmIn  = filled ? '1:00'  : '';
+        const pmOut = filled ? '5:00'  : '';
+        tableRows += `<tr>
+            <td>${d}</td>
+            <td>${amIn}</td>
+            <td>${amOut}</td>
+            <td>${pmIn}</td>
+            <td>${pmOut}</td>
+        </tr>`;
+    }
+
+    // All fields (Name, Address, TUPAD ID, Month) are filled on all copies
+    const nameVal    = escapeHtml(name);
+    const addressVal = escapeHtml(address);
+    const idVal      = escapeHtml(tupadId);
+    const periodVal  = escapeHtml(period);
+
+    return `
+    <div class="dtr ${isSample ? 'sample' : ''}">
+        <div class="annex">ANNEX J-1</div>
+        <div class="title">DAILY TIME RECORD</div>
+
+        <div class="field">
+            <span class="label">Name:</span>
+            <span class="value ${nameVal ? 'filled' : ''}">${nameVal}</span>
+        </div>
+        <div class="field">
+            <span class="label">Address:</span>
+            <span class="value ${addressVal ? 'filled' : ''}">${addressVal}</span>
+        </div>
+        <div class="field">
+            <span class="label">TUPAD ID No.:</span>
+            <span class="value filled">${idVal}</span>
+        </div>
+        <div class="field">
+            <span class="label">Month:</span>
+            <span class="value filled">${periodVal}</span>
+        </div>
+
+        <table class="dtr-table">
+            <thead>
+                <tr>
+                    <th class="date-col" rowspan="2">Date</th>
+                    <th class="time-col" colspan="2">A.M.</th>
+                    <th class="time-col" colspan="2">P.M.</th>
+                </tr>
+                <tr>
+                    <th>Time In</th>
+                    <th>Time Out</th>
+                    <th>Time In</th>
+                    <th>Time Out</th>
+                </tr>
+            </thead>
+            <tbody>${tableRows}</tbody>
+        </table>
+
+        <div class="cert">
+            I certify on my honor that the above is a true and correct report of the hours of work performed,
+            record of which was made daily at the time of arrival and departure from work.
+        </div>
+
+        <div class="sig-block">
+            <div class="sig-line"></div>
+            <div class="sig-role">TUPAD Beneficiaries</div>
+        </div>
+
+        <div class="verified">Verified by:</div>
+
+        <div  style="display: flex; justify-content: space-between; gap: 2pt; margin-top: 20pt;">
+            <div class="verifier" style="flex: 1;">
+                <div class="verifier-name">${escapeHtml(pesoManager)}</div>
+                <div class="sig-role">
+                   <u> PESO Manager </u> , LGU/Brgy Official<br>
+                    or Designated Rep.,(if Direct Admin)NGO/PO<br>
+                    Officers or Designated Rep. if thru Co-partner
+                </div>
+            </div>
+            <div class="verifier" style="flex: 1;">
+                <div class="verifier-name">${escapeHtml(verifier)}</div>
+                <div class="sig-role">${escapeHtml(verifierTitle)}<br>${escapeHtml(office)}</div>
+            </div>
+        </div>
+    </div>`;
+}
+
+function generate() {
+    const idPrefix = document.getElementById('idPrefix').value.trim();
+    const periodsText = document.getElementById('periods').value;
+    const benText = document.getElementById('beneficiaries').value;
+    const pesoManager = document.getElementById('pesoManager').value.trim();
+    const verifier = document.getElementById('verifier').value.trim();
+    const verifierTitle = document.getElementById('verifierTitle').value.trim();
+    const office = document.getElementById('office').value.trim();
+
+    const periods = parsePeriods(periodsText);
+    const beneficiaries = parseBeneficiaries(benText);
+    const out = document.getElementById('output');
+
+    if (beneficiaries.length === 0 || periods.length === 0) {
+        out.innerHTML = '<div class="empty-state"><h2>Please enter at least one beneficiary and one period.</h2></div>';
+        document.getElementById('pageCount').textContent = '';
+        return;
+    }
+
+    let html = '';
+    for (const b of beneficiaries) {
+        for (const p of periods) {
+            const tupadId = idPrefix + b.idSuffix;
+            const common = {
+                name: b.name,
+                address: b.address,
+                tupadId,
+                period: p.period,
+                pesoManager, verifier, verifierTitle, office,
+                workDays: p.workDays
+            };
+
+            let pageHtml = '<div class="page">';
+            pageHtml += buildDTR(common, false);
+            pageHtml += buildDTR(common, false);
+            pageHtml += buildDTR(common, false);
+            pageHtml += buildDTR(common, true);
+            pageHtml += '</div>';
+            html += pageHtml;
+        }
+    }
+
+    out.innerHTML = html;
+    const totalPages = beneficiaries.length * periods.length;
+    document.getElementById('pageCount').textContent =
+        `${beneficiaries.length} beneficiar${beneficiaries.length === 1 ? 'y' : 'ies'} × ${periods.length} period${periods.length === 1 ? '' : 's'} — ${totalPages} page(s) ready`;
+}
+
+window.addEventListener('load', generate);
+</script>
+
+</body>
+</html>
