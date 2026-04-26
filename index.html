@@ -264,6 +264,12 @@ body {
 .dtr.sample .field .value.filled {
     font-weight: bold;
 }
+.dtr .field .value.bold-field {
+    font-weight: bold;
+}
+.dtr table.dtr-table td.time-cell {
+    font-weight: bold;
+}
 
 .dtr table.dtr-table {
     width: 100%;
@@ -694,10 +700,10 @@ function buildDTR(data, isSample) {
         const pmOut = filled ? '5:00'  : '';
         tableRows += `<tr>
             <td>${d}</td>
-            <td>${amIn}</td>
-            <td>${amOut}</td>
-            <td>${pmIn}</td>
-            <td>${pmOut}</td>
+            <td class="time-cell">${amIn}</td>
+            <td class="time-cell">${amOut}</td>
+            <td class="time-cell">${pmIn}</td>
+            <td class="time-cell">${pmOut}</td>
         </tr>`;
     }
 
@@ -714,19 +720,19 @@ function buildDTR(data, isSample) {
 
         <div class="field">
             <span class="label">Name:</span>
-            <span class="value ${nameVal ? 'filled' : ''}">${nameVal}</span>
+            <span class="value filled bold-field">${nameVal}</span>
         </div>
         <div class="field">
             <span class="label">Address:</span>
-            <span class="value ${addressVal ? 'filled' : ''}">${addressVal}</span>
+            <span class="value filled bold-field">${addressVal}</span>
         </div>
         <div class="field">
             <span class="label">TUPAD ID No.:</span>
-            <span class="value filled">${idVal}</span>
+            <span class="value filled bold-field">${idVal}</span>
         </div>
         <div class="field">
             <span class="label">Month:</span>
-            <span class="value filled">${periodVal}</span>
+            <span class="value filled bold-field">${periodVal}</span>
         </div>
 
         <table class="dtr-table">
