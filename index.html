@@ -9,7 +9,8 @@
 <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='8' fill='%231a5490'/><rect x='15' y='20' width='70' height='65' rx='3' fill='white'/><line x1='15' y1='35' x2='85' y2='35' stroke='%231a5490' stroke-width='3'/><circle cx='50' cy='55' r='18' fill='none' stroke='%231a5490' stroke-width='4'/><line x1='50' y1='55' x2='50' y2='43' stroke='%231a5490' stroke-width='4' stroke-linecap='round'/><line x1='50' y1='55' x2='60' y2='55' stroke='%231a5490' stroke-width='3' stroke-linecap='round'/></svg>">
 <link rel="manifest" href="data:application/json,{&quot;name&quot;:&quot;TUPAD DTR Generator&quot;,&quot;short_name&quot;:&quot;DTR Generator&quot;,&quot;start_url&quot;:&quot;.&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;#ffffff&quot;,&quot;theme_color&quot;:&quot;#1a5490&quot;}">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 /* ===========================================================
    MENU BAR — fixed top, left-aligned buttons
@@ -274,7 +275,7 @@ body {
 }
 .pdf-export .dtr table.dtr-table th,
 .pdf-export .dtr table.dtr-table td {
-    height: 10.5pt;
+    height: 13.5pt;
     line-height: 1;
     font-family: "Arial Narrow", Arial, sans-serif;
 }
@@ -836,9 +837,9 @@ function generate() {
         `${beneficiaries.length} beneficiar${beneficiaries.length === 1 ? 'y' : 'ies'} × ${periods.length} period${periods.length === 1 ? '' : 's'} — ${totalPages} page(s) ready`;
 }
 
-function savePDF() {
-    const element = document.getElementById('output');
-    if (!element || element.children.length === 0) {
+async function savePDF() {
+    const pages = document.querySelectorAll('#output .page');
+    if (!pages.length) {
         alert('No DTR pages to export. Please upload beneficiary data first.');
         return;
     }
@@ -846,20 +847,28 @@ function savePDF() {
     btn.textContent = '⏳ Generating...';
     btn.disabled = true;
 
-    const opt = {
-        margin:     [0, 0, 0, 0],
-        filename:   'TUPAD_DTR.pdf',
-        image:      { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
-        jsPDF:      { unit: 'in', format: [8.5, 13], orientation: 'landscape' }
-    };
+    const output = document.getElementById('output');
+    output.classList.add('pdf-export');
+    output.style.zoom = '0.94';
 
-    element.classList.add('pdf-export');
-    html2pdf().set(opt).from(element).save().then(() => {
-        element.classList.remove('pdf-export');
+    try {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ orientation: 'landscape', unit: 'in', format: [8.5, 13] });
+
+        for (let i = 0; i < pages.length; i++) {
+            const canvas = await html2canvas(pages[i], { scale: 2, useCORS: true, logging: false });
+            if (i > 0) pdf.addPage([8.5, 13], 'landscape');
+            const imgData = canvas.toDataURL('image/jpeg', 0.98);
+            pdf.addImage(imgData, 'JPEG', 0, 0, 13, 8.5);
+        }
+
+        pdf.save('TUPAD_DTR.pdf');
+    } finally {
+        output.style.zoom = '';
+        output.classList.remove('pdf-export');
         btn.textContent = '📄 Save PDF';
         btn.disabled = false;
-    });
+    }
 }
 
 window.addEventListener('load', generate);
