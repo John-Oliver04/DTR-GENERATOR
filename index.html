@@ -525,10 +525,11 @@ function handleFileUpload(e) {
                 return null;
             };
 
-            const nameKey   = findKey(['name', 'pangalan']);
-            const idKey     = findKey(['id', 'suffix', 'no.', 'number']);
-            const addrKey   = findKey(['address', 'tirahan']);
-            const prefixKey = findKey(['prefix']);
+            const nameKey    = findKey(['name', 'pangalan']);
+            const tupadIdKey = findKey(['tupad id', 'tupad_id', 'tupadid', 'tupad-id']);
+            const idKey      = tupadIdKey ? null : findKey(['id', 'suffix', 'no.', 'number']);
+            const addrKey    = findKey(['address', 'tirahan']);
+            const prefixKey  = tupadIdKey ? null : findKey(['prefix']);
 
             if (!nameKey) {
                 status.className = 'upload-status error';
@@ -538,19 +539,37 @@ function handleFileUpload(e) {
 
             const lines = [];
             let firstPrefix = '';
+
+            // Pre-extract prefix from first row if using combined TUPAD ID column
+            if (tupadIdKey && rows.length > 0) {
+                const firstId = String(rows[0][tupadIdKey] || '').trim();
+                const m = firstId.match(/^(.*-)(\d+)$/);
+                if (m) firstPrefix = m[1];
+            }
+
             // For periods: collect unique (period | days) combinations
             const periodSet = new Map(); // period text -> days text
 
             rows.forEach((r, i) => {
                 const name = String(r[nameKey] || '').trim();
                 if (!name) return;
-                const id   = idKey   ? String(r[idKey]   || '').trim() : '';
+
+                let id = '';
+                if (tupadIdKey) {
+                    const fullId = String(r[tupadIdKey] || '').trim();
+                    if (fullId && firstPrefix && fullId.startsWith(firstPrefix)) {
+                        id = fullId.substring(firstPrefix.length);
+                    } else {
+                        const m = fullId.match(/(\d+)$/);
+                        id = m ? m[1] : fullId;
+                    }
+                } else {
+                    id = idKey ? String(r[idKey] || '').trim() : '';
+                    if (i === 0 && prefixKey) firstPrefix = String(r[prefixKey] || '').trim();
+                }
+
                 const addr = addrKey ? String(r[addrKey] || '').trim() : '';
                 lines.push([name, id, addr].join(', '));
-
-                if (i === 0) {
-                    if (prefixKey) firstPrefix = String(r[prefixKey] || '').trim();
-                }
 
                 // Find period columns
                 const monthKey  = findKey(['month', 'period', 'buwan']);
@@ -597,17 +616,17 @@ function handleFileUpload(e) {
 
 function downloadTemplate() {
     const ws_data = [
-        ['Name', 'ID', 'Address', 'TUPAD ID Prefix', 'Period', 'Work Days'],
-        ['Juan D. Cruz',       '001', 'Brgy. San Jose, Sablayan',   'TUPAD-2026-03-0167-PAL-', 'April 24-30, 2026', '24-30'],
-        ['Juan D. Cruz',       '001', 'Brgy. San Jose, Sablayan',   'TUPAD-2026-03-0167-PAL-', 'May 1-5, 2026', '1-5'],
-        ['Maria L. Santos',    '002', 'Brgy. Poblacion, Sablayan',  '', '', ''],
-        ['Maria L. Santos',    '002', 'Brgy. Poblacion, Sablayan',  '', '', ''],
-        ['Pedro R. Dela Cruz', '003', 'Brgy. Buenavista, Sablayan', '', '', ''],
-        ['Pedro R. Dela Cruz', '003', 'Brgy. Buenavista, Sablayan', '', '', ''],
+        ['Name', 'TUPAD ID', 'Address', 'Period', 'Work Days'],
+        ['Juan D. Cruz',       'TUPAD-2026-03-0167-PAL-001', 'Brgy. San Jose, Sablayan',   'April 24-30, 2026', '24-30'],
+        ['Juan D. Cruz',       'TUPAD-2026-03-0167-PAL-001', 'Brgy. San Jose, Sablayan',   'May 1-5, 2026', '1-5'],
+        ['Maria L. Santos',    'TUPAD-2026-03-0167-PAL-002', 'Brgy. Poblacion, Sablayan',  '', ''],
+        ['Maria L. Santos',    'TUPAD-2026-03-0167-PAL-002', 'Brgy. Poblacion, Sablayan',  '', ''],
+        ['Pedro R. Dela Cruz', 'TUPAD-2026-03-0167-PAL-003', 'Brgy. Buenavista, Sablayan', '', ''],
+        ['Pedro R. Dela Cruz', 'TUPAD-2026-03-0167-PAL-003', 'Brgy. Buenavista, Sablayan', '', ''],
     ];
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(ws_data);
-    ws['!cols'] = [{ wch: 25 }, { wch: 8 }, { wch: 35 }, { wch: 28 }, { wch: 22 }, { wch: 12 }];
+    ws['!cols'] = [{ wch: 25 }, { wch: 32 }, { wch: 35 }, { wch: 22 }, { wch: 12 }];
     XLSX.utils.book_append_sheet(wb, ws, 'Beneficiaries');
     XLSX.writeFile(wb, 'TUPAD_DTR_Beneficiaries_Template.xlsx');
 }
