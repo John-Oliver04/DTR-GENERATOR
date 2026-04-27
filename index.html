@@ -540,13 +540,6 @@ function handleFileUpload(e) {
             const lines = [];
             let firstPrefix = '';
 
-            // Pre-extract prefix from first row if using combined TUPAD ID column
-            if (tupadIdKey && rows.length > 0) {
-                const firstId = String(rows[0][tupadIdKey] || '').trim();
-                const m = firstId.match(/^(.*-)(\d+)$/);
-                if (m) firstPrefix = m[1];
-            }
-
             // For periods: collect unique (period | days) combinations
             const periodSet = new Map(); // period text -> days text
 
@@ -556,13 +549,8 @@ function handleFileUpload(e) {
 
                 let id = '';
                 if (tupadIdKey) {
-                    const fullId = String(r[tupadIdKey] || '').trim();
-                    if (fullId && firstPrefix && fullId.startsWith(firstPrefix)) {
-                        id = fullId.substring(firstPrefix.length);
-                    } else {
-                        const m = fullId.match(/(\d+)$/);
-                        id = m ? m[1] : fullId;
-                    }
+                    // Store the full TUPAD ID as-is — supports different prefixes per row
+                    id = String(r[tupadIdKey] || '').trim();
                 } else {
                     id = idKey ? String(r[idKey] || '').trim() : '';
                     if (i === 0 && prefixKey) firstPrefix = String(r[prefixKey] || '').trim();
@@ -587,7 +575,12 @@ function handleFileUpload(e) {
             });
 
             document.getElementById('beneficiaries').value = lines.join('\n');
-            if (firstPrefix) document.getElementById('idPrefix').value = firstPrefix;
+            if (tupadIdKey) {
+                // Full IDs are stored per-beneficiary; clear the global prefix
+                document.getElementById('idPrefix').value = '';
+            } else if (firstPrefix) {
+                document.getElementById('idPrefix').value = firstPrefix;
+            }
 
             // Build periods text
             if (periodSet.size > 0) {
@@ -618,11 +611,11 @@ function downloadTemplate() {
     const ws_data = [
         ['Name', 'TUPAD ID', 'Address', 'Period', 'Work Days'],
         ['Juan D. Cruz',       'TUPAD-2026-03-0167-PAL-001', 'Brgy. San Jose, Sablayan',   'April 24-30, 2026', '24-30'],
-        ['Juan D. Cruz',       'TUPAD-2026-03-0167-PAL-001', 'Brgy. San Jose, Sablayan',   'May 1-5, 2026', '1-5'],
-        ['Maria L. Santos',    'TUPAD-2026-03-0167-PAL-002', 'Brgy. Poblacion, Sablayan',  '', ''],
-        ['Maria L. Santos',    'TUPAD-2026-03-0167-PAL-002', 'Brgy. Poblacion, Sablayan',  '', ''],
-        ['Pedro R. Dela Cruz', 'TUPAD-2026-03-0167-PAL-003', 'Brgy. Buenavista, Sablayan', '', ''],
-        ['Pedro R. Dela Cruz', 'TUPAD-2026-03-0167-PAL-003', 'Brgy. Buenavista, Sablayan', '', ''],
+        ['Juan D. Cruz',       'TUPAD-2026-03-0167-PAL-001', 'Brgy. San Jose, Sablayan',   'May 1-5, 2026',    '1-5'],
+        ['Maria L. Santos',    'TUPAD-2026-03-MAM-002',      'Brgy. Poblacion, Sablayan',  'April 24-30, 2026', '24-30'],
+        ['Maria L. Santos',    'TUPAD-2026-03-MAM-002',      'Brgy. Poblacion, Sablayan',  'May 1-5, 2026',    '1-5'],
+        ['Pedro R. Dela Cruz', 'TUPAD-2026-03-MAM-003',      'Brgy. Buenavista, Sablayan', 'April 24-30, 2026', '24-30'],
+        ['Pedro R. Dela Cruz', 'TUPAD-2026-03-MAM-003',      'Brgy. Buenavista, Sablayan', 'May 1-5, 2026',    '1-5'],
     ];
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(ws_data);
