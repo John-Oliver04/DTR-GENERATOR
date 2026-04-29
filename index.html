@@ -389,30 +389,9 @@ body {
         </div>
         <div class="modal-body">
             <div class="form-row">
-                <label>TUPAD ID Prefix:</label>
-                <input type="text" id="m-idPrefix" value="TUPAD-2026-03-0167-PAL-" placeholder="e.g. TUPAD-2026-03-0167-PAL-">
-                <div class="hint">ID suffix (e.g. 001) is appended per beneficiary</div>
-            </div>
-            <div class="form-row">
                 <label>Periods:</label>
                 <textarea id="m-periods" placeholder="One per line.&#10;With work days:  April 24-30, 2026 | 24-30&#10;Open (no days):  May 2026">April 24-30, 2026 | 24-30</textarea>
                 <div class="hint">Work days after | are optional. Leave blank or omit | for an open DTR (all time entries blank).</div>
-            </div>
-            <div class="form-row">
-                <label>Beneficiaries:</label>
-                <textarea id="m-beneficiaries" placeholder="One per line. Format: Name | ID | Address | PESO Manager (PESO Manager optional)">Juan D. Cruz | 001 | Brgy. San Jose, Sablayan
-Maria L. Santos | 002 | Brgy. Poblacion, Sablayan
-Pedro R. Dela Cruz | 003 | Brgy. Buenavista, Sablayan</textarea>
-                <div class="hint">Use | to separate fields. PESO Manager per row overrides the global setting below.</div>
-            </div>
-            <div class="form-row">
-                <label>Signed by:</label>
-                <input type="text" id="m-pesoManager" value="">
-            </div>
-            <div class="form-row">
-                <label>Designation:</label>
-                <input type="text" id="m-pesoDesignation" value="" placeholder="e.g. PESO Manager, Brgy. Captain, Designated Rep.">
-                <div class="hint">Title shown under the signing name (defaults to "PESO Manager")</div>
             </div>
             <div class="form-row">
                 <label>Verified By:</label>
@@ -439,10 +418,10 @@ Pedro R. Dela Cruz | 003 | Brgy. Buenavista, Sablayan</textarea>
 <input type="hidden" id="idPrefix" value="TUPAD-2026-03-0167-PAL-">
 <textarea id="periods" style="display:none">April 24-30, 2026 | 24-30</textarea>
 <textarea id="beneficiaries" style="display:none"></textarea>
-<input type="hidden" id="pesoManager" value="JESSICA B. GUPILAN">
-<input type="hidden" id="pesoDesignation" value="PESO Manager">
+<input type="hidden" id="pesoManager" value="">
+<input type="hidden" id="pesoDesignation" value="">
 <input type="hidden" id="verifier" value="GENER L. FRANCISCO">
-<input type="hidden" id="verifierTitle" value="OIC-Provincial Office Head">
+<input type="hidden" id="verifierTitle" value="Provincial Office Head">
 <input type="hidden" id="office" value="Occidental Mindoro Provincial Office">
 
 <div id="output"></div>
@@ -453,14 +432,10 @@ Pedro R. Dela Cruz | 003 | Brgy. Buenavista, Sablayan</textarea>
 // ===========================================================
 function openModal() {
     // Sync values FROM main fields TO modal
-    document.getElementById('m-idPrefix').value     = document.getElementById('idPrefix').value;
-    document.getElementById('m-periods').value      = document.getElementById('periods').value;
-    document.getElementById('m-beneficiaries').value = document.getElementById('beneficiaries').value;
-    document.getElementById('m-pesoManager').value  = document.getElementById('pesoManager').value;
-    document.getElementById('m-pesoDesignation').value = document.getElementById('pesoDesignation').value;
-    document.getElementById('m-verifier').value     = document.getElementById('verifier').value;
+    document.getElementById('m-periods').value       = document.getElementById('periods').value;
+    document.getElementById('m-verifier').value      = document.getElementById('verifier').value;
     document.getElementById('m-verifierTitle').value = document.getElementById('verifierTitle').value;
-    document.getElementById('m-office').value       = document.getElementById('office').value;
+    document.getElementById('m-office').value        = document.getElementById('office').value;
     document.getElementById('detailsModal').classList.add('show');
 }
 
@@ -470,14 +445,10 @@ function closeModal() {
 
 function saveDetails() {
     // Sync values FROM modal TO main fields
-    document.getElementById('idPrefix').value     = document.getElementById('m-idPrefix').value;
     document.getElementById('periods').value       = document.getElementById('m-periods').value;
-    document.getElementById('beneficiaries').value = document.getElementById('m-beneficiaries').value;
-    document.getElementById('pesoManager').value  = document.getElementById('m-pesoManager').value;
-    document.getElementById('pesoDesignation').value = document.getElementById('m-pesoDesignation').value;
-    document.getElementById('verifier').value     = document.getElementById('m-verifier').value;
+    document.getElementById('verifier').value      = document.getElementById('m-verifier').value;
     document.getElementById('verifierTitle').value = document.getElementById('m-verifierTitle').value;
-    document.getElementById('office').value       = document.getElementById('m-office').value;
+    document.getElementById('office').value        = document.getElementById('m-office').value;
     closeModal();
     generate();
 }
@@ -585,6 +556,14 @@ function handleFileUpload(e) {
                 document.getElementById('idPrefix').value = '';
             } else if (firstPrefix) {
                 document.getElementById('idPrefix').value = firstPrefix;
+            }
+
+            // Sync first row's PESO Manager + Designation to the global hidden fields
+            if (rows.length > 0) {
+                const firstPeso  = pesoKey  ? String(rows[0][pesoKey]  || '').trim() : '';
+                const firstDesig = desigKey ? String(rows[0][desigKey] || '').trim() : '';
+                if (firstPeso)  document.getElementById('pesoManager').value     = firstPeso;
+                if (firstDesig) document.getElementById('pesoDesignation').value = firstDesig;
             }
 
             // Build periods text
