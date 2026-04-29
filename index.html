@@ -400,13 +400,19 @@ body {
             </div>
             <div class="form-row">
                 <label>Beneficiaries:</label>
-                <textarea id="m-beneficiaries" placeholder="One per line. Format: Full Name, ID suffix, Address">Juan D. Cruz, 001, Brgy. San Jose, Sablayan
-Maria L. Santos, 002, Brgy. Poblacion, Sablayan
-Pedro R. Dela Cruz, 003, Brgy. Buenavista, Sablayan</textarea>
+                <textarea id="m-beneficiaries" placeholder="One per line. Format: Name | ID | Address | PESO Manager (PESO Manager optional)">Juan D. Cruz | 001 | Brgy. San Jose, Sablayan
+Maria L. Santos | 002 | Brgy. Poblacion, Sablayan
+Pedro R. Dela Cruz | 003 | Brgy. Buenavista, Sablayan</textarea>
+                <div class="hint">Use | to separate fields. PESO Manager per row overrides the global setting below.</div>
             </div>
             <div class="form-row">
-                <label>PESO Manager:</label>
-                <input type="text" id="m-pesoManager" value="JESSICA B. GUPILAN">
+                <label>Signed by:</label>
+                <input type="text" id="m-pesoManager" value="">
+            </div>
+            <div class="form-row">
+                <label>Designation:</label>
+                <input type="text" id="m-pesoDesignation" value="" placeholder="e.g. PESO Manager, Brgy. Captain, Designated Rep.">
+                <div class="hint">Title shown under the signing name (defaults to "PESO Manager")</div>
             </div>
             <div class="form-row">
                 <label>Verified By:</label>
@@ -414,7 +420,7 @@ Pedro R. Dela Cruz, 003, Brgy. Buenavista, Sablayan</textarea>
             </div>
             <div class="form-row">
                 <label>Verifier Title:</label>
-                <input type="text" id="m-verifierTitle" value="OIC-Provincial Office Head">
+                <input type="text" id="m-verifierTitle" value="Provincial Office Head">
             </div>
             <div class="form-row">
                 <label>Office:</label>
@@ -434,6 +440,7 @@ Pedro R. Dela Cruz, 003, Brgy. Buenavista, Sablayan</textarea>
 <textarea id="periods" style="display:none">April 24-30, 2026 | 24-30</textarea>
 <textarea id="beneficiaries" style="display:none"></textarea>
 <input type="hidden" id="pesoManager" value="JESSICA B. GUPILAN">
+<input type="hidden" id="pesoDesignation" value="PESO Manager">
 <input type="hidden" id="verifier" value="GENER L. FRANCISCO">
 <input type="hidden" id="verifierTitle" value="OIC-Provincial Office Head">
 <input type="hidden" id="office" value="Occidental Mindoro Provincial Office">
@@ -450,6 +457,7 @@ function openModal() {
     document.getElementById('m-periods').value      = document.getElementById('periods').value;
     document.getElementById('m-beneficiaries').value = document.getElementById('beneficiaries').value;
     document.getElementById('m-pesoManager').value  = document.getElementById('pesoManager').value;
+    document.getElementById('m-pesoDesignation').value = document.getElementById('pesoDesignation').value;
     document.getElementById('m-verifier').value     = document.getElementById('verifier').value;
     document.getElementById('m-verifierTitle').value = document.getElementById('verifierTitle').value;
     document.getElementById('m-office').value       = document.getElementById('office').value;
@@ -466,6 +474,7 @@ function saveDetails() {
     document.getElementById('periods').value       = document.getElementById('m-periods').value;
     document.getElementById('beneficiaries').value = document.getElementById('m-beneficiaries').value;
     document.getElementById('pesoManager').value  = document.getElementById('m-pesoManager').value;
+    document.getElementById('pesoDesignation').value = document.getElementById('m-pesoDesignation').value;
     document.getElementById('verifier').value     = document.getElementById('m-verifier').value;
     document.getElementById('verifierTitle').value = document.getElementById('m-verifierTitle').value;
     document.getElementById('office').value       = document.getElementById('m-office').value;
@@ -522,6 +531,8 @@ function handleFileUpload(e) {
             const idKey      = tupadIdKey ? null : findKey(['id', 'suffix', 'no.', 'number']);
             const addrKey    = findKey(['address', 'tirahan']);
             const prefixKey  = tupadIdKey ? null : findKey(['prefix']);
+            const pesoKey    = findKey(['peso manager', 'manager', 'supervisor', 'signatory']);
+            const desigKey   = findKey(['designation', 'role', 'title']);
 
             if (!nameKey) {
                 status.className = 'upload-status error';
@@ -548,8 +559,10 @@ function handleFileUpload(e) {
                     if (i === 0 && prefixKey) firstPrefix = String(r[prefixKey] || '').trim();
                 }
 
-                const addr = addrKey ? String(r[addrKey] || '').trim() : '';
-                lines.push([name, id, addr].join(', '));
+                const addr  = addrKey  ? String(r[addrKey]  || '').trim() : '';
+                const peso  = pesoKey  ? String(r[pesoKey]  || '').trim() : '';
+                const desig = desigKey ? String(r[desigKey] || '').trim() : '';
+                lines.push([name, id, addr, peso, desig].join(' | '));
 
                 // Find period columns
                 const monthKey  = findKey(['month', 'period', 'buwan']);
@@ -601,17 +614,17 @@ function handleFileUpload(e) {
 
 function downloadTemplate() {
     const ws_data = [
-        ['Name', 'TUPAD ID', 'Address', 'Period', 'Work Days'],
-        ['Juan D. Cruz',       'TUPAD-2026-03-0167-PAL-001', 'Brgy. San Jose, Sablayan',   'April 24-30, 2026', '24-30'],
-        ['Juan D. Cruz',       'TUPAD-2026-03-0167-PAL-001', 'Brgy. San Jose, Sablayan',   'May 1-5, 2026',    '1-5'],
-        ['Maria L. Santos',    'TUPAD-2026-03-MAM-002',      'Brgy. Poblacion, Sablayan',  'April 24-30, 2026', '24-30'],
-        ['Maria L. Santos',    'TUPAD-2026-03-MAM-002',      'Brgy. Poblacion, Sablayan',  'May 1-5, 2026',    ''],
-        ['Pedro R. Dela Cruz', 'TUPAD-2026-03-MAM-003',      'Brgy. Buenavista, Sablayan', 'April 2026',       ''],
-        ['Pedro R. Dela Cruz', 'TUPAD-2026-03-MAM-003',      'Brgy. Buenavista, Sablayan', 'May 2026',         ''],
+        ['Name', 'TUPAD ID', 'Address', 'PESO Manager', 'Designation', 'Period', 'Work Days'],
+        ['Juan D. Cruz',       'TUPAD-2026-03-0167-PAL-001', 'Brgy. San Jose, Sablayan',   'JESSICA B. GUPILAN', 'PESO Manager',       'April 24-30, 2026', '24-30'],
+        ['Juan D. Cruz',       'TUPAD-2026-03-0167-PAL-001', 'Brgy. San Jose, Sablayan',   'JESSICA B. GUPILAN', 'PESO Manager',       'May 1-5, 2026',    '1-5'],
+        ['Maria L. Santos',    'TUPAD-2026-03-MAM-002',      'Brgy. Poblacion, Sablayan',  'PEDRO M. CRUZ',      'Brgy. Captain',      'April 24-30, 2026', '24-30'],
+        ['Maria L. Santos',    'TUPAD-2026-03-MAM-002',      'Brgy. Poblacion, Sablayan',  'PEDRO M. CRUZ',      'Brgy. Captain',      'May 1-5, 2026',    ''],
+        ['Pedro R. Dela Cruz', 'TUPAD-2026-03-MAM-003',      'Brgy. Buenavista, Sablayan', 'ANA L. SANTOS',      'Designated Rep.',    'April 2026',       ''],
+        ['Pedro R. Dela Cruz', 'TUPAD-2026-03-MAM-003',      'Brgy. Buenavista, Sablayan', 'ANA L. SANTOS',      'Designated Rep.',    'May 2026',         ''],
     ];
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(ws_data);
-    ws['!cols'] = [{ wch: 25 }, { wch: 32 }, { wch: 35 }, { wch: 22 }, { wch: 12 }];
+    ws['!cols'] = [{ wch: 25 }, { wch: 32 }, { wch: 35 }, { wch: 22 }, { wch: 18 }, { wch: 22 }, { wch: 12 }];
     XLSX.utils.book_append_sheet(wb, ws, 'Beneficiaries');
     XLSX.writeFile(wb, 'TUPAD_DTR_Beneficiaries_Template.xlsx');
 }
@@ -664,12 +677,26 @@ function parseBeneficiaries(str) {
     for (const line of lines) {
         const t = line.trim();
         if (!t) continue;
-        const parts = t.split(',').map(s => s.trim());
-        const name = parts[0] || '';
-        const idSuffix = parts[1] || '';
-        // Address may contain commas — join remaining parts
-        const address = parts.slice(2).join(', ');
-        if (name) list.push({ name, idSuffix, address });
+        let name, idSuffix, address, pesoManager;
+        let pesoDesignation;
+        if (t.includes('|')) {
+            // Pipe-separated: Name | ID | Address | PESO Manager | Designation
+            const parts = t.split('|').map(s => s.trim());
+            name            = parts[0] || '';
+            idSuffix        = parts[1] || '';
+            address         = parts[2] || '';
+            pesoManager     = parts[3] || '';
+            pesoDesignation = parts[4] || '';
+        } else {
+            // Legacy comma-separated: Name, ID, Address
+            const parts = t.split(',').map(s => s.trim());
+            name            = parts[0] || '';
+            idSuffix        = parts[1] || '';
+            address         = parts.slice(2).join(', ');
+            pesoManager     = '';
+            pesoDesignation = '';
+        }
+        if (name) list.push({ name, idSuffix, address, pesoManager, pesoDesignation });
     }
     return list;
 }
@@ -686,7 +713,7 @@ function escapeHtml(s) {
 function buildDTR(data, isSample) {
     const {
         name, tupadId, address, period,
-        pesoManager, verifier, verifierTitle, office,
+        pesoManager, pesoDesignation, verifier, verifierTitle, office,
         workDays
     } = data;
 
@@ -771,7 +798,7 @@ function buildDTR(data, isSample) {
             <div class="verifier" style="flex: 1;">
                 <div class="verifier-name">${escapeHtml(pesoManager)}</div>
                 <div class="sig-role">
-                   <u> PESO Manager </u> , LGU/Brgy Official<br>
+                   <u> ${escapeHtml(pesoDesignation || 'PESO Manager')} </u> , LGU/Brgy Official<br>
                     or Designated Rep.,(if Direct Admin)NGO/PO<br>
                     Officers or Designated Rep. if thru Co-partner
                 </div>
@@ -789,16 +816,18 @@ function generate() {
     const periodsText = document.getElementById('periods').value;
     const benText = document.getElementById('beneficiaries').value;
     const pesoManager = document.getElementById('pesoManager').value.trim();
+    const pesoDesignation = document.getElementById('pesoDesignation').value.trim();
     const verifier = document.getElementById('verifier').value.trim();
     const verifierTitle = document.getElementById('verifierTitle').value.trim();
     const office = document.getElementById('office').value.trim();
 
-    const periods = parsePeriods(periodsText);
+    let periods = parsePeriods(periodsText);
+    if (periods.length === 0) periods = [{ period: '', workDays: new Set() }];
     const beneficiaries = parseBeneficiaries(benText);
     const out = document.getElementById('output');
 
-    if (beneficiaries.length === 0 || periods.length === 0) {
-        out.innerHTML = '<div class="empty-state"><h2>Please enter at least one beneficiary and one period.</h2></div>';
+    if (beneficiaries.length === 0) {
+        out.innerHTML = '<div class="empty-state"><h2>Please enter at least one beneficiary.</h2></div>';
         document.getElementById('pageCount').textContent = '';
         return;
     }
@@ -812,7 +841,9 @@ function generate() {
                 address: b.address,
                 tupadId,
                 period: p.period,
-                pesoManager, verifier, verifierTitle, office,
+                pesoManager:     b.pesoManager     || pesoManager,
+                pesoDesignation: b.pesoDesignation || pesoDesignation,
+                verifier, verifierTitle, office,
                 workDays: p.workDays
             };
 
