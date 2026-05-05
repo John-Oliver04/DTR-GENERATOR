@@ -852,14 +852,30 @@ async function savePDF() {
     btn.textContent = '⏳ Generating...';
     btn.disabled = true;
 
-    // PDF page dimensions (landscape 8.5x13)
     const PDF_W = 13, PDF_H = 8.5;
+    const PX_PER_IN = 96;
+
+    // Single off-screen root — positioned left of viewport so browser still lays it out
+    const hiddenRoot = document.createElement('div');
+    Object.assign(hiddenRoot.style, {
+        position: 'fixed',
+        top: '0',
+        left: '-15000px',
+        width: '0',
+        height: '0',
+        overflow: 'visible',
+        zIndex: '0'
+    });
+    document.body.appendChild(hiddenRoot);
+
+    const raf2 = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
     try {
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF({ orientation: 'landscape', unit: 'in', format: [PDF_W, PDF_H] });
 
         for (let i = 0; i < pages.length; i++) {
+            // Clone with pdf-export class — does NOT touch the live DOM page
             const clone = pages[i].cloneNode(true);
             clone.classList.add('pdf-export');
             Object.assign(clone.style, {
@@ -868,59 +884,60 @@ async function savePDF() {
                 width: PDF_W + 'in',
                 height: 'auto',
                 overflow: 'visible',
-                transformOrigin: 'top left'
+                transformOrigin: 'top left',
+                transform: 'none'
             });
 
-            // Wrapper fixed exactly to PDF page size
+            // Wrapper clips content to exact PDF page dimensions
             const wrapper = document.createElement('div');
             Object.assign(wrapper.style, {
-                position: 'fixed',
-                top: '-99999px',
+                position: 'absolute',
+                top: '0',
                 left: '0',
                 width: PDF_W + 'in',
                 height: PDF_H + 'in',
                 overflow: 'hidden',
-                background: '#fff',
-                margin: '0',
-                padding: '0'
+                background: '#fff'
             });
             wrapper.appendChild(clone);
-            document.body.appendChild(wrapper);
+            hiddenRoot.appendChild(wrapper);
 
-            // Let browser compute layout
-            await new Promise(r => setTimeout(r, 60));
+            // Wait for layout to fully settle
+            await raf2();
 
-            // Scale content down so it fits the PDF page height
+            // Scale clone so full content fits within PDF page height
             const naturalH = clone.scrollHeight;
-            const targetH  = wrapper.offsetHeight;
-            if (naturalH > 0) {
-                const fitScale = Math.min(1, targetH / naturalH);
-                clone.style.transform = `scale(${fitScale})`;
+            const targetH  = PDF_H * PX_PER_IN;
+            if (naturalH > targetH) {
+                clone.style.transform = `scale(${targetH / naturalH})`;
             }
 
-            await new Promise(r => setTimeout(r, 30));
+            // Let transform apply before capture
+            await raf2();
 
-            try {
-                const canvas = await html2canvas(wrapper, {
-                    scale: 1.5,
-                    allowTaint: true,
-                    useCORS: false,
-                    logging: false,
-                    backgroundColor: '#ffffff',
-                    width:  wrapper.offsetWidth,
-                    height: wrapper.offsetHeight
-                });
-                if (i > 0) pdf.addPage([PDF_W, PDF_H], 'landscape');
-                pdf.addImage(canvas.toDataURL('image/jpeg', 0.98), 'JPEG', 0, 0, PDF_W, PDF_H);
-            } finally {
-                document.body.removeChild(wrapper);
-            }
+            const canvas = await html2canvas(wrapper, {
+                scale: 1.5,
+                allowTaint: true,
+                useCORS: false,
+                logging: false,
+                backgroundColor: '#ffffff',
+                width:  wrapper.offsetWidth,
+                height: wrapper.offsetHeight,
+                scrollX: 0,
+                scrollY: 0
+            });
+
+            if (i > 0) pdf.addPage([PDF_W, PDF_H], 'landscape');
+            pdf.addImage(canvas.toDataURL('image/jpeg', 0.98), 'JPEG', 0, 0, PDF_W, PDF_H);
+
+            hiddenRoot.removeChild(wrapper);
         }
 
         pdf.save('TUPAD_DTR.pdf');
     } catch (err) {
         alert('PDF export failed: ' + err.message);
     } finally {
+        document.body.removeChild(hiddenRoot);
         btn.textContent = '📄 Save PDF';
         btn.disabled = false;
     }
