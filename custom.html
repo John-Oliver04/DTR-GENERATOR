@@ -18,7 +18,7 @@ body {
     font-family: "Arial Narrow", Arial, sans-serif;
     background: #e8edf2;
     color: #000;
-    padding-top: 56px;
+    padding-top: 100px;
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -95,11 +95,15 @@ body {
    LAYOUT CONTROL PANEL (below menu bar)
 ═══════════════════════════════════════════════════════ */
 .layout-panel {
+    position: fixed;
+    top: 56px;
+    left: 0; right: 0;
+    z-index: 99;
     background: #1e3050;
     border-bottom: 2px solid #2a4a7a;
-    padding: 8px 16px;
+    padding: 7px 16px;
     display: flex;
-    gap: 20px;
+    gap: 16px;
     align-items: center;
     flex-wrap: wrap;
     box-shadow: 0 2px 6px rgba(0,0,0,.2);
@@ -165,6 +169,55 @@ body {
     margin-left: auto;
     white-space: nowrap;
 }
+
+/* Merge dates section */
+.lp-merge-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+}
+.lp-merge-wrap .lp-toggle {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    user-select: none;
+}
+.lp-merge-wrap .lp-toggle input[type="checkbox"] {
+    width: 16px; height: 16px;
+    cursor: pointer;
+    accent-color: #e07820;
+}
+.lp-merge-wrap .lp-toggle span {
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: #f0a860;
+    white-space: nowrap;
+}
+/* Sort order dropdown — shown only when merge is ON */
+.merge-order-wrap {
+    display: none;
+    align-items: center;
+    gap: 5px;
+}
+.merge-order-wrap.visible { display: flex; }
+.merge-order-wrap .lp-label { color: #f0a860; }
+.merge-order-select {
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    background: #2a3e5a;
+    color: #f0d0a0;
+    border: 1px solid #5a7aaa;
+    border-radius: 4px;
+    padding: 3px 6px;
+    cursor: pointer;
+    outline: none;
+    max-width: 260px;
+}
+.merge-order-select option { background: #1e3050; color: #f0d0a0; }
 
 /* ═══════════════════════════════════════════════════════
    MODALS
@@ -441,7 +494,6 @@ body {
     <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
     <span class="brand">📋 TUPAD DTR</span>
     <div class="sep"></div>
-    <a class=""      href="/"> Back</a>
     <button class="btn-template" onclick="downloadTemplate()">⬇ Template</button>
     <button class="btn-details"  onclick="openModal('detailsModal')">📋 Details</button>
     <button class="btn-print"    onclick="window.print()">🖨 Print</button>
@@ -483,6 +535,24 @@ body {
             <button onclick="setOption('benef',2)"               title="2 beneficiaries per page">2</button>
             <button onclick="setOption('benef',3)"               title="3 beneficiaries per page">3</button>
             <button onclick="setOption('benef',4)" class="active" title="4 beneficiaries per page">4</button>
+        </div>
+    </div>
+
+    <div class="sep" style="background:#3a5a8a;height:28px;width:1px;margin:0 4px;"></div>
+
+    <!-- Merge Dates -->
+    <div class="lp-group lp-merge-wrap">
+        <label class="lp-toggle">
+            <input type="checkbox" id="mergeToggle" onchange="onMergeChange()">
+            <span>🔗 MERGE DATES</span>
+        </label>
+        <div class="merge-order-wrap" id="mergeOrderWrap">
+            <span class="lp-label">ORDER:</span>
+            <select class="merge-order-select" id="mergeOrder" onchange="onLayoutChange()">
+                <option value="benef-first">By Beneficiary  (B1-May, B1-Jun, B2-May, B2-Jun…)</option>
+                <option value="period-first">By Period  (B1-May, B2-May… then B1-Jun, B2-Jun…)</option>
+                <option value="benef-page">One Page per Beneficiary  (B1: May+Jun | B2: May+Jun)</option>
+            </select>
         </div>
     </div>
 
@@ -541,9 +611,11 @@ body {
 // LAYOUT STATE
 // ═══════════════════════════════════════════════════════
 const layout = {
-    copies: 1,      // blank copies per beneficiary (1–3)
-    sample: true,   // include sample copy?
-    benef:  4       // beneficiaries per page (1–4)
+    copies: 1,          // blank copies per beneficiary (1–3)
+    sample: true,       // include sample copy?
+    benef:  4,          // beneficiaries per page (1–4)
+    merge:  false,      // merge all periods onto same pages?
+    mergeOrder: 'benef-first'  // 'benef-first' | 'period-first' | 'benef-page'
 };
 
 function setOption(key, val) {
@@ -556,8 +628,19 @@ function setOption(key, val) {
     onLayoutChange();
 }
 
+function onMergeChange() {
+    layout.merge = document.getElementById('mergeToggle').checked;
+    // Show/hide the order dropdown
+    const wrap = document.getElementById('mergeOrderWrap');
+    if (layout.merge) wrap.classList.add('visible');
+    else              wrap.classList.remove('visible');
+    onLayoutChange();
+}
+
 function onLayoutChange() {
-    layout.sample = document.getElementById('sampleToggle').checked;
+    layout.sample     = document.getElementById('sampleToggle').checked;
+    layout.merge      = document.getElementById('mergeToggle').checked;
+    layout.mergeOrder = document.getElementById('mergeOrder').value;
     updateLayoutSummary();
     generate();
 }
@@ -565,8 +648,11 @@ function onLayoutChange() {
 function updateLayoutSummary() {
     const totalPerPage = (layout.copies + (layout.sample ? 1 : 0)) * layout.benef;
     const sampleNote   = layout.sample ? ' + sample' : '';
+    const mergeNote    = layout.merge ? ` | 🔗 MERGED (${
+        layout.mergeOrder === 'benef-first'  ? 'by benef.' :
+        layout.mergeOrder === 'period-first' ? 'by period' : '1 page/benef.'})` : '';
     document.getElementById('layoutSummary').textContent =
-        `📐 ${layout.benef} benef/page × (${layout.copies} blank${sampleNote}) = ${totalPerPage} DTR slots/page`;
+        `📐 ${layout.benef} benef/page × (${layout.copies} blank${sampleNote}) = ${totalPerPage} slots/page${mergeNote}`;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -882,16 +968,68 @@ function getGridLayout() {
 }
 
 // ═══════════════════════════════════════════════════════
+// BUILD A PAGE from an array of {beneficiary, period} slot objects
+// ═══════════════════════════════════════════════════════
+function buildPage(slots, g, gPesomgr, gPesodesig, verifier, verifierTitle, office, idPrefix) {
+    const PAGE_W = 13, PAGE_H = 8.5;
+    const usableW = PAGE_W - 0.24;
+    const colW    = (usableW / g.cols).toFixed(4);
+    const rowGap  = g.rows > 1 ? '0.06in' : '0';
+
+    let pageHtml = `<div class="page" style="
+        grid-template-columns: repeat(${g.cols}, ${colW}in);
+        grid-template-rows: repeat(${g.rows}, 1fr);
+        gap: ${rowGap} 0;
+        width: ${PAGE_W}in;
+        height: ${PAGE_H}in;
+    ">`;
+
+    // slots = array of { b, p } objects, length === g.bp (padded with null if partial)
+    slots.forEach((slot, si) => {
+        if (!slot) {
+            // Padding slots — invisible placeholders
+            for (let c = 0; c < g.dtrsPerBen; c++) {
+                pageHtml += '<div class="dtr" style="visibility:hidden"></div>';
+            }
+            return;
+        }
+        const { b, p } = slot;
+        const tupadId = idPrefix ? (idPrefix + b.idSuffix) : b.idSuffix;
+        const common  = {
+            name:            b.name,
+            address:         b.address,
+            tupadId,
+            period:          p.period,
+            pesoManager:     b.pesoManager     || gPesomgr,
+            pesoDesignation: b.pesoDesignation || gPesodesig,
+            verifier, verifierTitle, office,
+            workDays: p.workDays
+        };
+
+        for (let c = 0; c < g.dtrsPerBen; c++) {
+            const isSample = g.hasSample && c === g.dtrsPerBen - 1;
+            const colIndex = (si % g.benefPerRow) * g.dtrsPerBen + c;
+            const isLastCol = colIndex === g.cols - 1;
+            const extraCls  = isLastCol ? '' : 'border-right';
+            pageHtml += buildDTR(common, isSample, extraCls);
+        }
+    });
+
+    pageHtml += '</div>';
+    return pageHtml;
+}
+
+// ═══════════════════════════════════════════════════════
 // MAIN GENERATE
 // ═══════════════════════════════════════════════════════
 function generate() {
     updateLayoutSummary();
 
-    const idPrefix    = document.getElementById('idPrefix').value.trim();
-    const periodsText = document.getElementById('periods').value;
-    const benText     = document.getElementById('beneficiaries').value;
-    const gPesomgr    = document.getElementById('pesoManager').value.trim();
-    const gPesodesig  = document.getElementById('pesoDesignation').value.trim();
+    const idPrefix     = document.getElementById('idPrefix').value.trim();
+    const periodsText  = document.getElementById('periods').value;
+    const benText      = document.getElementById('beneficiaries').value;
+    const gPesomgr     = document.getElementById('pesoManager').value.trim();
+    const gPesodesig   = document.getElementById('pesoDesignation').value.trim();
     const verifier     = document.getElementById('verifier').value.trim();
     const verifierTitle= document.getElementById('verifierTitle').value.trim();
     const office       = document.getElementById('office').value.trim();
@@ -913,72 +1051,60 @@ function generate() {
 
     const g = getGridLayout();
 
-    // Page dimensions & grid style
-    const PAGE_W  = 13;   // inches
-    const PAGE_H  = 8.5;  // inches
-    // Column width = page usable width / cols
-    const usableW = PAGE_W - 0.24; // minus padding
-    const colW    = (usableW / g.cols).toFixed(4);
-    const gridTemplate = `repeat(${g.cols}, ${colW}in)`;
-    // Row gap for multi-row
-    const rowGap = g.rows > 1 ? '0.06in' : '0';
+    // ── Build the flat list of {b, p} slots in the right order ──────────────
+    let slots = [];   // each element = { b: beneficiary, p: period }
 
-    // For each beneficiary × period combination we generate all their DTRs
-    // Group beneficiaries into pages of g.bp
+    if (!layout.merge) {
+        // ── DEFAULT (no merge): period outer, beneficiary inner ──────────────
+        for (const p of periods) {
+            for (const b of beneficiaries) {
+                slots.push({ b, p });
+            }
+        }
+    } else {
+        const order = layout.mergeOrder;
+
+        if (order === 'benef-first') {
+            // B1-May, B1-Jun, B2-May, B2-Jun …
+            for (const b of beneficiaries) {
+                for (const p of periods) {
+                    slots.push({ b, p });
+                }
+            }
+        } else if (order === 'period-first') {
+            // B1-May, B2-May … then B1-Jun, B2-Jun …
+            for (const p of periods) {
+                for (const b of beneficiaries) {
+                    slots.push({ b, p });
+                }
+            }
+        } else {
+            // benef-page: one page per beneficiary, all periods for that benef on same page
+            // Each beneficiary fills exactly ceil(periods.length / g.bp) pages
+            // but we group them so all periods of a benef sit together, then next benef
+            for (const b of beneficiaries) {
+                for (const p of periods) {
+                    slots.push({ b, p });
+                }
+                // Pad to next page boundary
+                const rem = slots.length % g.bp;
+                if (rem !== 0) {
+                    for (let i = 0; i < g.bp - rem; i++) slots.push(null);
+                }
+            }
+        }
+    }
+
+    // ── Paginate the flat slot list in chunks of g.bp ───────────────────────
     let html = '';
     let pageCount = 0;
 
-    for (const p of periods) {
-        // chunk beneficiaries by g.bp per page
-        for (let i = 0; i < beneficiaries.length; i += g.bp) {
-            const chunk = beneficiaries.slice(i, i + g.bp);
-
-            // Build page
-            let pageHtml = `<div class="page" style="
-                grid-template-columns: ${gridTemplate};
-                grid-template-rows: repeat(${g.rows}, 1fr);
-                gap: ${rowGap} 0;
-                width: ${PAGE_W}in;
-                height: ${PAGE_H}in;
-            ">`;
-
-            // For each beneficiary in the chunk, emit their DTR slots
-            chunk.forEach((b, bi) => {
-                const tupadId = idPrefix ? (idPrefix + b.idSuffix) : b.idSuffix;
-                const common  = {
-                    name:            b.name,
-                    address:         b.address,
-                    tupadId,
-                    period:          p.period,
-                    pesoManager:     b.pesoManager     || gPesomgr,
-                    pesoDesignation: b.pesoDesignation || gPesodesig,
-                    verifier, verifierTitle, office,
-                    workDays: p.workDays
-                };
-
-                // Determine separator classes
-                // Within a beneficiary's group, add right border except last slot
-                for (let c = 0; c < g.dtrsPerBen; c++) {
-                    const isSample    = g.hasSample && c === g.dtrsPerBen - 1;
-                    const isLastInBen = c === g.dtrsPerBen - 1;
-                    // Right border: add if not last column on the page
-                    const colIndex = (bi % g.benefPerRow) * g.dtrsPerBen + c;
-                    const isLastCol = colIndex === g.cols - 1;
-                    const extraCls  = isLastCol ? '' : 'border-right';
-                    pageHtml += buildDTR(common, isSample, extraCls);
-                }
-            });
-
-            // If chunk < g.bp (last page partial), fill empty cells
-            const emptySlots = (g.bp - chunk.length) * g.dtrsPerBen;
-            for (let e = 0; e < emptySlots; e++) {
-                pageHtml += '<div class="dtr" style="visibility:hidden"></div>';
-            }
-
-            pageHtml += '</div>';
-            html += pageHtml;
-            pageCount++;
-        }
+    for (let i = 0; i < slots.length; i += g.bp) {
+        const chunk = slots.slice(i, i + g.bp);
+        // Pad last chunk to g.bp with nulls
+        while (chunk.length < g.bp) chunk.push(null);
+        html += buildPage(chunk, g, gPesomgr, gPesodesig, verifier, verifierTitle, office, idPrefix);
+        pageCount++;
     }
 
     out.innerHTML = html;
