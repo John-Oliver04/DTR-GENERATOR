@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="description" content="TUPAD Daily Time Record Generator">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TUPAD DTR Generator</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='8' fill='%231a5490'/><rect x='15' y='20' width='70' height='65' rx='3' fill='white'/><line x1='15' y1='35' x2='85' y2='35' stroke='%231a5490' stroke-width='3'/><circle cx='50' cy='55' r='18' fill='none' stroke='%231a5490' stroke-width='4'/><line x1='50' y1='55' x2='50' y2='43' stroke='%231a5490' stroke-width='4' stroke-linecap='round'/><line x1='50' y1='55' x2='60' y2='55' stroke='%231a5490' stroke-width='3' stroke-linecap='round'/></svg>">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════════════════
+   BASE
+═══════════════════════════════════════════════════════ */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: "Arial Narrow", Arial, sans-serif;
+    background: #e8edf2;
+    color: #000;
+    padding-top: 56px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   TOP MENU BAR
+═══════════════════════════════════════════════════════ */
+.menu-bar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    background: #1a2940;
+    padding: 0 12px;
+    height: 56px;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+}
+.menu-bar .brand {
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+    color: #7eb8f7;
+    letter-spacing: 0.5px;
+    margin-right: 6px;
+    white-space: nowrap;
+}
+.menu-bar .sep {
+    width: 1px;
+    height: 28px;
+    background: #3a4f6a;
+    margin: 0 4px;
+}
+.menu-bar .spacer { flex: 1; }
+.menu-bar button {
+    padding: 6px 13px;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    font-weight: bold;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity .15s, transform .1s;
+}
+.menu-bar button:hover { opacity: .88; transform: translateY(-1px); }
+.menu-bar button:active { transform: translateY(0); }
+.btn-template { background: #5a6a7a; }
+.btn-details  { background: #1a5490; }
+.btn-layout   { background: #7b3fa0; }
+.btn-print    { background: #3a4a5a; }
+.btn-pdf      { background: #b03030; }
+.btn-upload   { background: #2d7d3f; }
+.page-count {
+    margin-left: 10px;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    font-weight: bold;
+    color: #7eb8f7;
+    white-space: nowrap;
+}
+.upload-status {
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    color: #6ed97f;
+    font-weight: bold;
+    margin-left: 6px;
+    white-space: nowrap;
+}
+.upload-status.error { color: #f07070; }
+#fileInput { display: none; }
+
+/* ═══════════════════════════════════════════════════════
+   LAYOUT CONTROL PANEL (below menu bar)
+═══════════════════════════════════════════════════════ */
+.layout-panel {
+    background: #1e3050;
+    border-bottom: 2px solid #2a4a7a;
+    padding: 8px 16px;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+    box-shadow: 0 2px 6px rgba(0,0,0,.2);
+}
+.layout-panel .lp-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.layout-panel .lp-label {
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: #a8c8f0;
+    white-space: nowrap;
+}
+.layout-panel .lp-btns {
+    display: flex;
+    gap: 3px;
+}
+.layout-panel .lp-btns button {
+    width: 30px;
+    height: 26px;
+    border: 1px solid #3a5a8a;
+    background: #243550;
+    color: #c0d8f8;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    font-weight: bold;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background .12s, color .12s;
+}
+.layout-panel .lp-btns button:hover { background: #2d4a7a; }
+.layout-panel .lp-btns button.active {
+    background: #1a5490;
+    color: #fff;
+    border-color: #5a9fd4;
+}
+.layout-panel .lp-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+}
+.layout-panel .lp-toggle input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: #1a8a50;
+}
+.layout-panel .lp-toggle span {
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: #a8c8f0;
+}
+.layout-summary {
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    color: #ffd070;
+    margin-left: auto;
+    white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════════════
+   MODALS
+═══════════════════════════════════════════════════════ */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,.55);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+    background: #fff;
+    border-radius: 8px;
+    width: 500px;
+    max-height: 92vh;
+    overflow-y: auto;
+    box-shadow: 0 6px 30px rgba(0,0,0,.4);
+}
+.modal-header {
+    padding: 14px 18px;
+    background: #1a5490;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    font-size: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    border-radius: 8px 8px 0 0;
+}
+.modal-header .close-modal {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 22px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+}
+.modal-body { padding: 18px; }
+.modal-body .form-row { margin-bottom: 12px; }
+.modal-body label {
+    display: block;
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    margin-bottom: 4px;
+    color: #333;
+}
+.modal-body input[type="text"],
+.modal-body textarea {
+    width: 100%;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    padding: 6px 8px;
+    border: 1px solid #aaa;
+    border-radius: 4px;
+}
+.modal-body textarea { min-height: 100px; font-family: monospace; font-size: 12px; }
+.modal-body .hint {
+    font-family: Arial, sans-serif;
+    font-size: 10px;
+    color: #777;
+    font-style: italic;
+    margin-top: 3px;
+}
+.modal-footer {
+    padding: 12px 18px;
+    border-top: 1px solid #ddd;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+.modal-footer .btn-save   { background: #1a5490; color: #fff; border: none; border-radius: 4px; padding: 7px 18px; font-family: Arial, sans-serif; font-size: 13px; font-weight: bold; cursor: pointer; }
+.modal-footer .btn-cancel { background: #777;    color: #fff; border: none; border-radius: 4px; padding: 7px 18px; font-family: Arial, sans-serif; font-size: 13px; font-weight: bold; cursor: pointer; }
+.modal-dev {
+    padding: 6px 18px 10px;
+    text-align: center;
+    font-family: Arial, sans-serif;
+    font-size: 10px;
+    color: #aaa;
+}
+
+/* ═══════════════════════════════════════════════════════
+   LAYOUT PREVIEW MODAL (7b3fa0)
+═══════════════════════════════════════════════════════ */
+.layout-modal .modal-header { background: #7b3fa0; }
+.layout-modal .modal-footer .btn-save { background: #7b3fa0; }
+
+/* ═══════════════════════════════════════════════════════
+   DTR PAGE — dynamic grid
+═══════════════════════════════════════════════════════ */
+.page {
+    background: #fff;
+    margin: 18px auto;
+    padding: 0.08in 0.12in 0.08in 0.12in;
+    box-shadow: 0 2px 10px rgba(0,0,0,.15);
+    page-break-after: always;
+    page-break-inside: avoid;
+    display: grid;
+    overflow: visible;
+
+    /* width & height set dynamically by JS */
+    width: 13in;
+    height: 8.5in;
+}
+.page:last-child { page-break-after: auto; }
+
+/* Grid column templates — set by JS on each .page */
+/* (columns and row gaps injected inline) */
+
+.dtr {
+    display: flex;
+    flex-direction: column;
+    font-family: "Arial Narrow", Arial, sans-serif;
+    font-size: 10pt;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Right border separator — added via JS class */
+.dtr.border-right .dtr-top { border-right: 1px dashed #aaa; }
+.dtr.border-right { padding-right: 4pt; margin-right: 2pt; }
+
+/* Bottom border separator for multi-row layouts */
+.dtr.border-bottom { border-bottom: 1px dashed #aaa; padding-bottom: 3pt; margin-bottom: 2pt; }
+
+.dtr .annex {
+    font-size: 9.5pt;
+    font-weight: bold;
+    text-align: center;
+    line-height: 1.1;
+}
+.dtr .title {
+    font-size: 9.5pt;
+    font-weight: bold;
+    text-align: center;
+    line-height: 1.1;
+    margin-bottom: 2pt;
+}
+.dtr .field {
+    font-size: 8.5pt;
+    line-height: 1.15;
+    display: flex;
+    align-items: baseline;
+    gap: 2pt;
+}
+.dtr .field .label {
+    font-weight: bold;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.dtr .field .value {
+    flex: 1;
+    border-bottom: 1px solid #000;
+    padding: 0 2pt 1pt 2pt;
+    min-height: 10pt;
+    font-size: 8.5pt;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.dtr .field .value.bold-field { font-weight: bold; }
+.dtr table.dtr-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 2pt;
+    table-layout: fixed;
+}
+.dtr table.dtr-table th,
+.dtr table.dtr-table td {
+    border: 1px solid #000;
+    padding: 0;
+    text-align: center;
+    font-size: 8pt;
+    height: 11.5pt;
+    line-height: 1;
+}
+.dtr table.dtr-table th { font-weight: bold; font-size: 7.5pt; }
+.dtr table.dtr-table .date-col { width: 7%; }
+.dtr table.dtr-table .time-cell { font-weight: bold; }
+
+.dtr .cert {
+    font-size: 6pt;
+    line-height: 1.1;
+    margin-top: 1.5pt;
+    text-align: justify;
+}
+.dtr .sig-block {
+    margin-top: 12pt;
+    font-size: 6.5pt;
+    line-height: 1.1;
+    padding-left: 2pt;
+}
+.dtr .sig-line {
+    border-top: 1px solid #000;
+    width: 62%;
+    margin: 5pt 0 0 0;
+}
+.dtr .sig-role { font-size: 6pt; line-height: 1.1; }
+.dtr .verified { font-size: 6.5pt; margin-top: 8pt; font-weight: bold; }
+.dtr .verifier {
+    text-align: center;
+    font-size: 6pt;
+    line-height: 1.05;
+}
+.dtr .verifier-name { font-weight: bold; font-size: 7pt; }
+
+/* SAMPLE — script signature */
+.dtr.sample .sig-line { border-top: 1px solid transparent; }
+.dtr.sample .sig-line::before {
+    content: "Permahan";
+    font-family: 'Brush Script MT', 'Lucida Handwriting', cursive;
+    font-size: 9pt;
+    font-style: italic;
+    display: block;
+    text-align: left;
+    margin-top: -6pt;
+    padding-bottom: 2pt;
+    padding-left: 4pt;
+    border-bottom: 1px solid #000;
+    width: 62%;
+}
+
+/* ═══════════════════════════════════════════════════════
+   EMPTY STATE
+═══════════════════════════════════════════════════════ */
+.empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    color: #667;
+    font-family: Arial, sans-serif;
+}
+.empty-state .es-icon { font-size: 52px; margin-bottom: 16px; }
+.empty-state h2 { color: #334; font-size: 20px; margin-bottom: 8px; }
+.empty-state p { font-size: 13px; color: #889; max-width: 420px; margin: 0 auto; }
+
+/* ═══════════════════════════════════════════════════════
+   PRINT
+═══════════════════════════════════════════════════════ */
+@media print {
+    @page { size: 13in 8.5in landscape; margin: 0; }
+    body { background: #fff; margin: 0; padding: 0; }
+    .no-print { display: none !important; }
+    .page {
+        margin: 0;
+        box-shadow: none;
+        width: 13in !important;
+        height: 8.5in !important;
+        padding: 0.08in 0.12in 0.08in 0.12in;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════
+   PDF EXPORT CLASS
+═══════════════════════════════════════════════════════ */
+.pdf-export .dtr table.dtr-table th,
+.pdf-export .dtr table.dtr-table td {
+    height: 12pt;
+    line-height: 1;
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ MENU BAR ═══════════════ -->
+<div class="menu-bar no-print">
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+    <span class="brand">📋 TUPAD DTR</span>
+    <div class="sep"></div>
+    <button class="btn-template" onclick="downloadTemplate()">⬇ Template</button>
+    <button class="btn-details"  onclick="openModal('detailsModal')">📋 Details</button>
+    <button class="btn-print"    onclick="window.print()">🖨 Print</button>
+    <button class="btn-pdf"      onclick="savePDF()">📄 PDF</button>
+    <div class="sep"></div>
+    <button class="btn-upload"   onclick="document.getElementById('fileInput').click()">📁 Upload Excel</button>
+    <span class="upload-status" id="uploadStatus"></span>
+    <span class="spacer"></span>
+    <span class="page-count" id="pageCount"></span>
+</div>
+
+<!-- ═══════════════ LAYOUT CONTROL PANEL ═══════════════ -->
+<div class="layout-panel no-print">
+    <!-- Blank copies per beneficiary -->
+    <div class="lp-group">
+        <span class="lp-label">BLANK COPIES / BENEFICIARY:</span>
+        <div class="lp-btns" id="copiesCtrl">
+            <button onclick="setOption('copies',1)" class="active" title="1 blank copy">1</button>
+            <button onclick="setOption('copies',2)"               title="2 blank copies">2</button>
+            <button onclick="setOption('copies',3)"               title="3 blank copies">3</button>
+        </div>
+    </div>
+
+    <!-- Sample copy toggle -->
+    <div class="lp-group">
+        <label class="lp-toggle">
+            <input type="checkbox" id="sampleToggle" checked onchange="onLayoutChange()">
+            <span>+ SAMPLE COPY</span>
+        </label>
+    </div>
+
+    <div class="sep" style="background:#3a5a8a;height:28px;width:1px;margin:0 4px;"></div>
+
+    <!-- Beneficiaries per page -->
+    <div class="lp-group">
+        <span class="lp-label">BENEF. / PAGE:</span>
+        <div class="lp-btns" id="benefCtrl">
+            <button onclick="setOption('benef',1)"               title="1 beneficiary per page">1</button>
+            <button onclick="setOption('benef',2)"               title="2 beneficiaries per page">2</button>
+            <button onclick="setOption('benef',3)"               title="3 beneficiaries per page">3</button>
+            <button onclick="setOption('benef',4)" class="active" title="4 beneficiaries per page">4</button>
+        </div>
+    </div>
+
+    <!-- Live summary -->
+    <span class="layout-summary" id="layoutSummary"></span>
+</div>
+
+<!-- ═══════════════ DETAILS MODAL ═══════════════ -->
+<div class="modal-overlay" id="detailsModal">
+    <div class="modal">
+        <div class="modal-header">
+            <span>ℹ️ DTR Details</span>
+            <button class="close-modal" onclick="closeModal('detailsModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-row">
+                <label>Periods:</label>
+                <textarea id="m-periods" placeholder="One per line.&#10;With work days:  April 24-30, 2026 | 24-30&#10;Open (no days):  May 2026">April 24-30, 2026 | 24-30</textarea>
+                <div class="hint">Work days after | are optional. Leave blank or omit | for an open DTR.</div>
+            </div>
+            <div class="form-row">
+                <label>Verified By:</label>
+                <input type="text" id="m-verifier" value="GENER L. FRANCISCO">
+            </div>
+            <div class="form-row">
+                <label>Verifier Title:</label>
+                <input type="text" id="m-verifierTitle" value="Provincial Office Head">
+            </div>
+            <div class="form-row">
+                <label>Office:</label>
+                <input type="text" id="m-office" value="Occidental Mindoro Provincial Office">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeModal('detailsModal')">Cancel</button>
+            <button class="btn-save"   onclick="saveDetails()">Save & Generate</button>
+        </div>
+        <div class="modal-dev">Developer: J_Virola</div>
+    </div>
+</div>
+
+<!-- ═══════════════ HIDDEN DATA FIELDS ═══════════════ -->
+<input  type="hidden" id="idPrefix"       value="TUPAD-2026-03-0167-PAL-">
+<textarea             id="periods"        style="display:none">April 24-30, 2026 | 24-30</textarea>
+<textarea             id="beneficiaries"  style="display:none"></textarea>
+<input  type="hidden" id="pesoManager"    value="">
+<input  type="hidden" id="pesoDesignation" value="">
+<input  type="hidden" id="verifier"       value="GENER L. FRANCISCO">
+<input  type="hidden" id="verifierTitle"  value="Provincial Office Head">
+<input  type="hidden" id="office"         value="Occidental Mindoro Provincial Office">
+
+<div id="output"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// LAYOUT STATE
+// ═══════════════════════════════════════════════════════
+const layout = {
+    copies: 1,      // blank copies per beneficiary (1–3)
+    sample: true,   // include sample copy?
+    benef:  4       // beneficiaries per page (1–4)
+};
+
+function setOption(key, val) {
+    layout[key] = val;
+    // Update button highlights
+    const ctrl = key === 'copies' ? 'copiesCtrl' : 'benefCtrl';
+    document.querySelectorAll(`#${ctrl} button`).forEach((b, i) => {
+        b.classList.toggle('active', i + 1 === val);
+    });
+    onLayoutChange();
+}
+
+function onLayoutChange() {
+    layout.sample = document.getElementById('sampleToggle').checked;
+    updateLayoutSummary();
+    generate();
+}
+
+function updateLayoutSummary() {
+    const totalPerPage = (layout.copies + (layout.sample ? 1 : 0)) * layout.benef;
+    const sampleNote   = layout.sample ? ' + sample' : '';
+    document.getElementById('layoutSummary').textContent =
+        `📐 ${layout.benef} benef/page × (${layout.copies} blank${sampleNote}) = ${totalPerPage} DTR slots/page`;
+}
+
+// ═══════════════════════════════════════════════════════
+// MODAL HELPERS
+// ═══════════════════════════════════════════════════════
+function openModal(id) {
+    if (id === 'detailsModal') {
+        document.getElementById('m-periods').value       = document.getElementById('periods').value;
+        document.getElementById('m-verifier').value      = document.getElementById('verifier').value;
+        document.getElementById('m-verifierTitle').value = document.getElementById('verifierTitle').value;
+        document.getElementById('m-office').value        = document.getElementById('office').value;
+    }
+    document.getElementById(id).classList.add('show');
+}
+function closeModal(id) {
+    document.getElementById(id).classList.remove('show');
+}
+function saveDetails() {
+    document.getElementById('periods').value       = document.getElementById('m-periods').value;
+    document.getElementById('verifier').value      = document.getElementById('m-verifier').value;
+    document.getElementById('verifierTitle').value = document.getElementById('m-verifierTitle').value;
+    document.getElementById('office').value        = document.getElementById('m-office').value;
+    closeModal('detailsModal');
+    generate();
+}
+// Close on overlay click
+document.querySelectorAll('.modal-overlay').forEach(o => {
+    o.addEventListener('click', e => { if (e.target === o) o.classList.remove('show'); });
+});
+
+// ═══════════════════════════════════════════════════════
+// EXCEL UPLOAD
+// ═══════════════════════════════════════════════════════
+document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+
+function handleFileUpload(e) {
+    const file   = e.target.files[0];
+    const status = document.getElementById('uploadStatus');
+    if (!file) return;
+    status.className = 'upload-status';
+    status.textContent = 'Reading…';
+
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        try {
+            const data = new Uint8Array(ev.target.result);
+            const wb   = XLSX.read(data, { type: 'array' });
+            const sheet = wb.Sheets[wb.SheetNames[0]];
+            const rows  = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
+
+            if (!rows.length) {
+                status.className = 'upload-status error';
+                status.textContent = '⚠ No data rows found.';
+                return;
+            }
+
+            const keys    = Object.keys(rows[0]);
+            const findKey = patterns => {
+                for (const k of keys) {
+                    const low = k.toLowerCase().trim();
+                    for (const p of patterns) { if (low.includes(p)) return k; }
+                }
+                return null;
+            };
+
+            const nameKey    = findKey(['name', 'pangalan']);
+            const tupadIdKey = findKey(['tupad id', 'tupad_id', 'tupadid', 'tupad-id']);
+            const idKey      = tupadIdKey ? null : findKey(['id', 'suffix', 'no.', 'number']);
+            const addrKey    = findKey(['address', 'tirahan']);
+            const prefixKey  = tupadIdKey ? null : findKey(['prefix']);
+            const pesoKey    = findKey(['peso manager', 'manager', 'supervisor', 'signatory']);
+            const desigKey   = findKey(['designation', 'role', 'title']);
+            const monthKey   = findKey(['month', 'period', 'buwan']);
+            const daysKey    = findKey(['work day', 'workday', 'days']);
+
+            if (!nameKey) {
+                status.className = 'upload-status error';
+                status.textContent = '⚠ No "Name" column found.';
+                return;
+            }
+
+            const lines     = [];
+            let firstPrefix = '';
+            const periodSet = new Map();
+
+            rows.forEach((r, i) => {
+                const name = String(r[nameKey] || '').trim();
+                if (!name) return;
+
+                let id = '';
+                if (tupadIdKey) {
+                    id = String(r[tupadIdKey] || '').trim();
+                } else {
+                    id = idKey ? String(r[idKey] || '').trim() : '';
+                    if (i === 0 && prefixKey) firstPrefix = String(r[prefixKey] || '').trim();
+                }
+
+                const addr  = addrKey  ? String(r[addrKey]  || '').trim() : '';
+                const peso  = pesoKey  ? String(r[pesoKey]  || '').trim() : '';
+                const desig = desigKey ? String(r[desigKey] || '').trim() : '';
+                lines.push([name, id, addr, peso, desig].join(' | '));
+
+                if (monthKey || daysKey) {
+                    const mv = monthKey ? String(r[monthKey] || '').trim() : '';
+                    const dv = daysKey  ? String(r[daysKey]  || '').trim() : '';
+                    if (mv || dv) {
+                        const k = mv + '|' + dv;
+                        if (!periodSet.has(k)) periodSet.set(k, { period: mv, days: dv });
+                    }
+                }
+            });
+
+            document.getElementById('beneficiaries').value = lines.join('\n');
+            if (tupadIdKey) {
+                document.getElementById('idPrefix').value = '';
+            } else if (firstPrefix) {
+                document.getElementById('idPrefix').value = firstPrefix;
+            }
+
+            if (rows.length > 0) {
+                const fp = pesoKey  ? String(rows[0][pesoKey]  || '').trim() : '';
+                const fd = desigKey ? String(rows[0][desigKey] || '').trim() : '';
+                if (fp) document.getElementById('pesoManager').value     = fp;
+                if (fd) document.getElementById('pesoDesignation').value = fd;
+            }
+
+            if (periodSet.size > 0) {
+                document.getElementById('periods').value =
+                    Array.from(periodSet.values()).map(p => `${p.period} | ${p.days}`).join('\n');
+            }
+
+            status.className = 'upload-status';
+            status.textContent = `✓ ${lines.length} beneficiar${lines.length === 1 ? 'y' : 'ies'} from ${file.name}`;
+            generate();
+        } catch (err) {
+            console.error(err);
+            status.className = 'upload-status error';
+            status.textContent = '⚠ Error: ' + err.message;
+        }
+    };
+    reader.onerror = () => {
+        status.className = 'upload-status error';
+        status.textContent = '⚠ Failed to read file.';
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+// ═══════════════════════════════════════════════════════
+// TEMPLATE DOWNLOAD
+// ═══════════════════════════════════════════════════════
+function downloadTemplate() {
+    const ws_data = [
+        ['Name', 'TUPAD ID', 'Address', 'PESO Manager', 'Designation', 'Period', 'Work Days'],
+        ['Juan D. Cruz',       'TUPAD-2026-03-0167-PAL-001', 'Brgy. San Jose, Sablayan',   'JESSICA B. GUPILAN', 'PESO Manager',    'April 24-30, 2026', '24-30'],
+        ['Juan D. Cruz',       'TUPAD-2026-03-0167-PAL-001', 'Brgy. San Jose, Sablayan',   'JESSICA B. GUPILAN', 'PESO Manager',    'May 1-5, 2026',    '1-5'],
+        ['Maria L. Santos',    'TUPAD-2026-03-MAM-002',      'Brgy. Poblacion, Sablayan',  'PEDRO M. CRUZ',      'Brgy. Captain',   'April 24-30, 2026', '24-30'],
+        ['Maria L. Santos',    'TUPAD-2026-03-MAM-002',      'Brgy. Poblacion, Sablayan',  'PEDRO M. CRUZ',      'Brgy. Captain',   'May 1-5, 2026',    ''],
+        ['Pedro R. Dela Cruz', 'TUPAD-2026-03-MAM-003',      'Brgy. Buenavista, Sablayan', 'ANA L. SANTOS',      'Designated Rep.', 'April 2026',       ''],
+    ];
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(ws_data);
+    ws['!cols'] = [{ wch: 25 },{ wch: 32 },{ wch: 35 },{ wch: 22 },{ wch: 18 },{ wch: 22 },{ wch: 12 }];
+    XLSX.utils.book_append_sheet(wb, ws, 'Beneficiaries');
+    XLSX.writeFile(wb, 'TUPAD_DTR_Beneficiaries_Template.xlsx');
+}
+
+// ═══════════════════════════════════════════════════════
+// PARSE HELPERS
+// ═══════════════════════════════════════════════════════
+function parseWorkDays(str) {
+    const days = new Set();
+    if (!str) return days;
+    for (const part of str.split(',')) {
+        const p = part.trim();
+        if (p.includes('-')) {
+            const [a, b] = p.split('-').map(n => parseInt(n.trim(), 10));
+            if (!isNaN(a) && !isNaN(b)) for (let i = a; i <= b; i++) days.add(i);
+        } else {
+            const n = parseInt(p, 10);
+            if (!isNaN(n)) days.add(n);
+        }
+    }
+    return days;
+}
+
+function parsePeriods(text) {
+    return text.split('\n').map(l => l.trim()).filter(Boolean).map(t => {
+        const pi = t.indexOf('|');
+        const period   = (pi >= 0 ? t.slice(0, pi) : t).trim();
+        const daysText = (pi >= 0 ? t.slice(pi + 1) : '').trim();
+        return period ? { period, workDays: parseWorkDays(daysText) } : null;
+    }).filter(Boolean);
+}
+
+function parseBeneficiaries(str) {
+    return str.split('\n').map(l => l.trim()).filter(Boolean).map(t => {
+        if (t.includes('|')) {
+            const parts = t.split('|').map(s => s.trim());
+            return {
+                name:            parts[0] || '',
+                idSuffix:        parts[1] || '',
+                address:         parts[2] || '',
+                pesoManager:     parts[3] || '',
+                pesoDesignation: parts[4] || ''
+            };
+        } else {
+            const parts = t.split(',').map(s => s.trim());
+            return { name: parts[0] || '', idSuffix: parts[1] || '', address: parts.slice(2).join(', '), pesoManager: '', pesoDesignation: '' };
+        }
+    }).filter(b => b.name);
+}
+
+function esc(s) {
+    if (s == null) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ═══════════════════════════════════════════════════════
+// BUILD A SINGLE DTR CARD
+// ═══════════════════════════════════════════════════════
+function buildDTR(data, isSample, extraClass) {
+    const { name, tupadId, address, period, pesoManager, pesoDesignation, verifier, verifierTitle, office, workDays } = data;
+
+    let rows = '';
+    for (let d = 1; d <= 31; d++) {
+        const filled = isSample && workDays.has(d);
+        rows += `<tr>
+            <td>${d}</td>
+            <td class="time-cell">${filled ? '8:00'  : ''}</td>
+            <td class="time-cell">${filled ? '12:00' : ''}</td>
+            <td class="time-cell">${filled ? '1:00'  : ''}</td>
+            <td class="time-cell">${filled ? '5:00'  : ''}</td>
+        </tr>`;
+    }
+
+    return `<div class="dtr ${isSample ? 'sample' : ''} ${extraClass || ''}">
+        <div class="dtr-top">
+            <div class="annex">ANNEX J-1</div>
+            <div class="title">DAILY TIME RECORD</div>
+            <div class="field"><span class="label">Name:</span><span class="value bold-field">${esc(name)}</span></div>
+            <div class="field"><span class="label">Address:</span><span class="value bold-field">${esc(address)}</span></div>
+            <div class="field"><span class="label">TUPAD ID No.:</span><span class="value bold-field">${esc(tupadId)}</span></div>
+            <div class="field"><span class="label">Month:</span><span class="value bold-field">${esc(period)}</span></div>
+            <table class="dtr-table">
+                <thead>
+                    <tr>
+                        <th class="date-col" rowspan="2">Date</th>
+                        <th colspan="2">A.M.</th>
+                        <th colspan="2">P.M.</th>
+                    </tr>
+                    <tr>
+                        <th>Time In</th><th>Time Out</th><th>Time In</th><th>Time Out</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+        </div>
+        <div class="cert">I certify on my honor that the above is a true and correct report of the hours of work performed, record of which was made daily at the time of arrival and departure from work.</div>
+        <div class="sig-block">
+            <div class="sig-line"></div>
+            <div class="sig-role">TUPAD Beneficiary</div>
+        </div>
+        <div class="verified">Verified by:</div>
+        <div style="display:flex;justify-content:space-between;gap:2pt;margin-top:16pt;">
+            <div class="verifier" style="flex:1;">
+                <div class="verifier-name">${esc(pesoManager)}</div>
+                <div class="sig-role"><u>${esc(pesoDesignation || 'PESO Manager')}</u> , LGU/Brgy Official<br>or Designated Rep.,(if Direct Admin)NGO/PO<br>Officers or Designated Rep. if thru Co-partner</div>
+            </div>
+            <div class="verifier" style="flex:1;">
+                <div class="verifier-name">${esc(verifier)}</div>
+                <div class="sig-role">${esc(verifierTitle)}<br>${esc(office)}</div>
+            </div>
+        </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// LAYOUT CALCULATOR
+// ═══════════════════════════════════════════════════════
+/*
+  Strategy:
+  - blanks  = layout.copies   (1, 2 or 3)
+  - hasSample = layout.sample
+  - benefPerPage = layout.benef  (1, 2, 3, 4)
+  - totalSlots per page = (blanks + (hasSample?1:0)) * benefPerPage
+
+  The page grid uses columns = totalSlots (all in one row)
+  BUT we may need to wrap if totalSlots > 4.
+  Rule: max 4 columns. If > 4 we use 2 rows of beneficiaries.
+
+  Grid columns = min(totalSlots, 4)
+  Grid rows = ceil(totalSlots / 4)
+
+  All DTRs for one beneficiary are adjacent horizontally.
+  Beneficiaries stack vertically when there are 2 rows.
+*/
+function getGridLayout() {
+    const blanks     = layout.copies;
+    const hasSample  = layout.sample;
+    const dtrsPerBen = blanks + (hasSample ? 1 : 0);
+    const bp         = layout.benef;
+    const totalSlots = dtrsPerBen * bp;
+
+    // Max columns = 4 (physical page constraint). We arrange:
+    // If all fits in 4 cols → 1 row, all beneficiaries side by side won't work for more than floor(4/dtrsPerBen) benef
+    // Actual strategy: fit as many beneficiaries per row as columns allow
+    const maxCols = 4;
+    const benefPerRow = Math.max(1, Math.floor(maxCols / dtrsPerBen));
+    const cols = benefPerRow * dtrsPerBen;     // actual columns used
+    const rows = Math.ceil(bp / benefPerRow);  // rows of beneficiaries
+
+    return { blanks, hasSample, dtrsPerBen, bp, totalSlots, cols, rows, benefPerRow };
+}
+
+// ═══════════════════════════════════════════════════════
+// MAIN GENERATE
+// ═══════════════════════════════════════════════════════
+function generate() {
+    updateLayoutSummary();
+
+    const idPrefix    = document.getElementById('idPrefix').value.trim();
+    const periodsText = document.getElementById('periods').value;
+    const benText     = document.getElementById('beneficiaries').value;
+    const gPesomgr    = document.getElementById('pesoManager').value.trim();
+    const gPesodesig  = document.getElementById('pesoDesignation').value.trim();
+    const verifier     = document.getElementById('verifier').value.trim();
+    const verifierTitle= document.getElementById('verifierTitle').value.trim();
+    const office       = document.getElementById('office').value.trim();
+
+    let periods = parsePeriods(periodsText);
+    if (!periods.length) periods = [{ period: '', workDays: new Set() }];
+    const beneficiaries = parseBeneficiaries(benText);
+    const out = document.getElementById('output');
+
+    if (!beneficiaries.length) {
+        out.innerHTML = `<div class="empty-state">
+            <div class="es-icon">📋</div>
+            <h2>No beneficiaries loaded</h2>
+            <p>Upload an Excel file using the <strong>📁 Upload Excel</strong> button, or download the template first.</p>
+        </div>`;
+        document.getElementById('pageCount').textContent = '';
+        return;
+    }
+
+    const g = getGridLayout();
+
+    // Page dimensions & grid style
+    const PAGE_W  = 13;   // inches
+    const PAGE_H  = 8.5;  // inches
+    // Column width = page usable width / cols
+    const usableW = PAGE_W - 0.24; // minus padding
+    const colW    = (usableW / g.cols).toFixed(4);
+    const gridTemplate = `repeat(${g.cols}, ${colW}in)`;
+    // Row gap for multi-row
+    const rowGap = g.rows > 1 ? '0.06in' : '0';
+
+    // For each beneficiary × period combination we generate all their DTRs
+    // Group beneficiaries into pages of g.bp
+    let html = '';
+    let pageCount = 0;
+
+    for (const p of periods) {
+        // chunk beneficiaries by g.bp per page
+        for (let i = 0; i < beneficiaries.length; i += g.bp) {
+            const chunk = beneficiaries.slice(i, i + g.bp);
+
+            // Build page
+            let pageHtml = `<div class="page" style="
+                grid-template-columns: ${gridTemplate};
+                grid-template-rows: repeat(${g.rows}, 1fr);
+                gap: ${rowGap} 0;
+                width: ${PAGE_W}in;
+                height: ${PAGE_H}in;
+            ">`;
+
+            // For each beneficiary in the chunk, emit their DTR slots
+            chunk.forEach((b, bi) => {
+                const tupadId = idPrefix ? (idPrefix + b.idSuffix) : b.idSuffix;
+                const common  = {
+                    name:            b.name,
+                    address:         b.address,
+                    tupadId,
+                    period:          p.period,
+                    pesoManager:     b.pesoManager     || gPesomgr,
+                    pesoDesignation: b.pesoDesignation || gPesodesig,
+                    verifier, verifierTitle, office,
+                    workDays: p.workDays
+                };
+
+                // Determine separator classes
+                // Within a beneficiary's group, add right border except last slot
+                for (let c = 0; c < g.dtrsPerBen; c++) {
+                    const isSample    = g.hasSample && c === g.dtrsPerBen - 1;
+                    const isLastInBen = c === g.dtrsPerBen - 1;
+                    // Right border: add if not last column on the page
+                    const colIndex = (bi % g.benefPerRow) * g.dtrsPerBen + c;
+                    const isLastCol = colIndex === g.cols - 1;
+                    const extraCls  = isLastCol ? '' : 'border-right';
+                    pageHtml += buildDTR(common, isSample, extraCls);
+                }
+            });
+
+            // If chunk < g.bp (last page partial), fill empty cells
+            const emptySlots = (g.bp - chunk.length) * g.dtrsPerBen;
+            for (let e = 0; e < emptySlots; e++) {
+                pageHtml += '<div class="dtr" style="visibility:hidden"></div>';
+            }
+
+            pageHtml += '</div>';
+            html += pageHtml;
+            pageCount++;
+        }
+    }
+
+    out.innerHTML = html;
+
+    const totalBenef   = beneficiaries.length;
+    const totalPeriods = periods.length;
+    document.getElementById('pageCount').textContent =
+        `${totalBenef} benef × ${totalPeriods} period${totalPeriods > 1 ? 's' : ''} — ${pageCount} page${pageCount > 1 ? 's' : ''} ready`;
+}
+
+// ═══════════════════════════════════════════════════════
+// PDF EXPORT
+// ═══════════════════════════════════════════════════════
+async function savePDF() {
+    const pages = document.querySelectorAll('#output .page');
+    if (!pages.length) {
+        alert('No DTR pages to export. Please upload beneficiary data first.');
+        return;
+    }
+    const btn = document.querySelector('.btn-pdf');
+    btn.textContent = '⏳ Generating…';
+    btn.disabled = true;
+
+    const PDF_W = 13, PDF_H = 8.5, PX_PER_IN = 96;
+    const hiddenRoot = document.createElement('div');
+    Object.assign(hiddenRoot.style, {
+        position: 'fixed', top: '0', left: '-15000px',
+        width: '0', height: '0', overflow: 'visible', zIndex: '0'
+    });
+    document.body.appendChild(hiddenRoot);
+
+    const raf2 = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ orientation: 'landscape', unit: 'in', format: [PDF_W, PDF_H] });
+
+        for (let i = 0; i < pages.length; i++) {
+            const clone = pages[i].cloneNode(true);
+            clone.classList.add('pdf-export');
+            Object.assign(clone.style, {
+                margin: '0', boxShadow: 'none',
+                width: PDF_W + 'in', height: 'auto',
+                overflow: 'visible', transformOrigin: 'top left', transform: 'none'
+            });
+
+            const wrapper = document.createElement('div');
+            Object.assign(wrapper.style, {
+                position: 'absolute', top: '0', left: '0',
+                width: PDF_W + 'in', height: PDF_H + 'in',
+                overflow: 'hidden', background: '#fff'
+            });
+            wrapper.appendChild(clone);
+            hiddenRoot.appendChild(wrapper);
+            await raf2();
+
+            const naturalH = clone.scrollHeight;
+            const targetH  = PDF_H * PX_PER_IN;
+            if (naturalH > targetH) clone.style.transform = `scale(${targetH / naturalH})`;
+            await raf2();
+
+            const canvas = await html2canvas(wrapper, {
+                scale: 1.5, allowTaint: true, useCORS: false, logging: false,
+                backgroundColor: '#ffffff',
+                width: wrapper.offsetWidth, height: wrapper.offsetHeight,
+                scrollX: 0, scrollY: 0
+            });
+
+            if (i > 0) pdf.addPage([PDF_W, PDF_H], 'landscape');
+            pdf.addImage(canvas.toDataURL('image/jpeg', 0.98), 'JPEG', 0, 0, PDF_W, PDF_H);
+            hiddenRoot.removeChild(wrapper);
+        }
+
+        pdf.save('TUPAD_DTR.pdf');
+    } catch (err) {
+        alert('PDF export failed: ' + err.message);
+    } finally {
+        document.body.removeChild(hiddenRoot);
+        btn.textContent = '📄 PDF';
+        btn.disabled = false;
+    }
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+window.addEventListener('load', () => {
+    updateLayoutSummary();
+    generate();
+});
+</script>
+</body>
+</html>
