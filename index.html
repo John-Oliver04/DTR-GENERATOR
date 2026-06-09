@@ -357,7 +357,7 @@ body {
 
 /* Weekend rows */
 .dtr table.dtr-table tr.weekend-row td {
-    background: #f5f0e8;
+    /* background: #f5f0e8; */
     color: #333;
     font-size: 7pt;
     font-style: italic;
@@ -870,14 +870,14 @@ function buildDTR(data, isSample, weekendInfo) {
         if (isSat && !showSat) {
             tableRows += `<tr class="weekend-row saturday-row">
                 <td>${d}</td>
-                <td colspan="4" style="font-size:7pt;font-weight:bold;color:#b05a00;letter-spacing:1px;">SATURDAY</td>
+                <td colspan="4" style="font-size:7pt;font-weight:bold;color:#000000;letter-spacing:1px;">SATURDAY</td>
             </tr>`;
             continue;
         }
         if (isSun && !showSun) {
             tableRows += `<tr class="weekend-row sunday-row">
                 <td>${d}</td>
-                <td colspan="4" style="font-size:7pt;font-weight:bold;color:#a01010;letter-spacing:1px;">SUNDAY</td>
+                <td colspan="4" style="font-size:7pt;font-weight:bold;color:#000000;letter-spacing:1px;">SUNDAY</td>
             </tr>`;
             continue;
         }
