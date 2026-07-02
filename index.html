@@ -53,7 +53,6 @@ body {
 .btn-template { background: #666; }
 .btn-details  { background: #1a5490; }
 .btn-print    { background: #444; }
-.btn-pdf      { background: #b03030; }
 .btn-upload   {background: #0fd443}
 .btn-toggle4  { background: #7b5ea7; }
 .btn-toggle4.hidden-mode { background: #2d7d3f; }
@@ -279,11 +278,11 @@ body {
     height: 8.5in;
     background: #fff;
     margin: 20px auto;
-    padding: 0.08in 0.15in 0.08in 0.15in;
+    padding: 0.08in;
     box-shadow: 0 2px 10px rgba(0,0,0,0.15);
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 0;
+    gap: 0 0.08in;
     page-break-after: always;
     page-break-inside: avoid;
     overflow: visible;
@@ -298,17 +297,11 @@ body {
     overflow: hidden;
     position: relative;
 }
-.dtr:nth-child(1),
-.dtr:nth-child(2),
-.dtr:nth-child(3) {
-    margin-right: 0.08in;
-    margin-left: 10px;
-    padding-right: calc(0.35in / 2);
-}
-.dtr:nth-child(1) .dtr-top,
-.dtr:nth-child(2) .dtr-top,
-.dtr:nth-child(3) .dtr-top {
+.dtr .dtr-top {
     border-right: 1px dashed #999;
+}
+.dtr:last-child .dtr-top {
+    border-right: none;
 }
 
 .dtr .annex {
@@ -343,12 +336,7 @@ body {
 .dtr table.dtr-table td {
     border: 1px solid #000;
     padding: 0; text-align: center;
-    font-size: 9pt; height: 12.5pt;
-}
-.pdf-export .dtr table.dtr-table th,
-.pdf-export .dtr table.dtr-table td {
-    height: 13.5pt; line-height: 1;
-    font-family: "Arial Narrow", Arial, sans-serif;
+    font-size: 9pt;
 }
 .dtr table.dtr-table th { font-weight: bold; font-size: 8pt; }
 .dtr table.dtr-table .date-col { width: 6%; }
@@ -407,19 +395,27 @@ body {
    PRINT STYLES
    =========================================================== */
 @media print {
-    @page { size: 13in 8.5in; margin: 0.1in 0.08in 0.08in 0.08in; }
+    @page { margin: 0.1in 0.1in 0.1in 0.1in; }
     body { background: #fff; margin: 0; padding: 0; }
     .menu-bar, .weekend-bar, .no-print { display: none !important; }
     .page {
         margin: 0; box-shadow: none;
-        width: 12.84in; height: 8.32in;
+        width: 100%; height: 100%;
         padding: 0.03in 0.06in;
     }
     .dtr { min-height: 100%; }
-    .dtr-top { flex: 1 1 auto; }
+    .dtr-top {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+    }
+    .dtr table.dtr-table {
+        flex: 1;
+        width: 100%;
+    }
     .dtr table.dtr-table th,
     .dtr table.dtr-table td {
-        height: 12pt;
+        height: auto;
     }
     .dtr .field { font-size: 8.5pt; line-height: 1.1; }
     .dtr .cert { font-size: 6pt; margin-top: 1pt; }
@@ -447,7 +443,6 @@ body {
     <button class="btn-template" onclick="downloadTemplate()">⬇ Download Template</button>
     <button class="btn-details"  onclick="openModal()">Show Details</button>
     <button class="btn-print"    onclick="window.print()">Print</button>
-    <button class="btn-pdf"      onclick="savePDF()">Save PDF</button>
     <button class="btn-toggle4"  id="btn4thCopy" onclick="toggle4thCopy()">👁 Sample </button>
     <span class="spacer"></span>
     <button class="btn-upload"   onclick="document.getElementById('fileInput').click()">Upload Excel</button>
@@ -1016,76 +1011,6 @@ function generate() {
     const totalPages = beneficiaries.length * periods.length;
     document.getElementById('pageCount').textContent =
         `${beneficiaries.length} beneficiar${beneficiaries.length === 1 ? 'y' : 'ies'} × ${periods.length} period${periods.length === 1 ? '' : 's'} — ${totalPages} page(s) ready`;
-}
-
-// ═══════════════════════════════════════════════════════════
-//  PDF EXPORT
-// ═══════════════════════════════════════════════════════════
-async function savePDF() {
-    const pages = document.querySelectorAll('#output .page');
-    if (!pages.length) { alert('No DTR pages to export.'); return; }
-
-    const btn = document.querySelector('.btn-pdf');
-    btn.textContent = '⏳ Generating...';
-    btn.disabled = true;
-
-    const PDF_W = 13, PDF_H = 8.5, PX_PER_IN = 96;
-    const hiddenRoot = document.createElement('div');
-    Object.assign(hiddenRoot.style, {
-        position:'fixed', top:'0', left:'-15000px',
-        width:'0', height:'0', overflow:'visible', zIndex:'0'
-    });
-    document.body.appendChild(hiddenRoot);
-
-    const raf2 = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-
-    try {
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF({ orientation: 'landscape', unit: 'in', format: [PDF_W, PDF_H] });
-
-        for (let i = 0; i < pages.length; i++) {
-            const clone = pages[i].cloneNode(true);
-            clone.classList.add('pdf-export');
-            Object.assign(clone.style, {
-                margin:'0', boxShadow:'none',
-                width: PDF_W+'in', height:'auto',
-                overflow:'visible', transformOrigin:'top left', transform:'none'
-            });
-
-            const wrapper = document.createElement('div');
-            Object.assign(wrapper.style, {
-                position:'absolute', top:'0', left:'0',
-                width: PDF_W+'in', height: PDF_H+'in',
-                overflow:'hidden', background:'#fff'
-            });
-            wrapper.appendChild(clone);
-            hiddenRoot.appendChild(wrapper);
-            await raf2();
-
-            const naturalH = clone.scrollHeight;
-            const targetH  = PDF_H * PX_PER_IN;
-            if (naturalH > targetH) clone.style.transform = `scale(${targetH / naturalH})`;
-            await raf2();
-
-            const canvas = await html2canvas(wrapper, {
-                scale: 1.5, allowTaint: true, useCORS: false,
-                logging: false, backgroundColor: '#ffffff',
-                width: wrapper.offsetWidth, height: wrapper.offsetHeight,
-                scrollX: 0, scrollY: 0
-            });
-
-            if (i > 0) pdf.addPage([PDF_W, PDF_H], 'landscape');
-            pdf.addImage(canvas.toDataURL('image/jpeg', 0.98), 'JPEG', 0, 0, PDF_W, PDF_H);
-            hiddenRoot.removeChild(wrapper);
-        }
-        pdf.save('TUPAD_DTR.pdf');
-    } catch (err) {
-        alert('PDF export failed: ' + err.message);
-    } finally {
-        document.body.removeChild(hiddenRoot);
-        btn.textContent = '📄 Save PDF';
-        btn.disabled = false;
-    }
 }
 
 // ═══════════════════════════════════════════════════════════
