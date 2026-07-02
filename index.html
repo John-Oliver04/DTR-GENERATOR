@@ -407,17 +407,22 @@ body {
    PRINT STYLES
    =========================================================== */
 @media print {
-    @page { size: 13in 8.5in landscape; margin: 0; }
+    @page { size: 13in 8.5in; margin: 0.1in 0.08in 0.08in 0.08in; }
     body { background: #fff; margin: 0; padding: 0; }
     .menu-bar, .weekend-bar, .no-print { display: none !important; }
     .page {
         margin: 0; box-shadow: none;
-        width: 13in; height: 8.5in;
-        padding: 0.08in 0.08in 0.08in 0.08in;
+        width: 12.84in; height: 8.32in;
+        padding: 0.03in 0.06in;
     }
-    /* Keep tint colors on print */
-    /* .dtr table.dtr-table tr.saturday-row td { background: #fff3e0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .dtr table.dtr-table tr.sunday-row td   { background: #fdecea !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } */
+    .dtr { min-height: 100%; }
+    .dtr-top { flex: 1 1 auto; }
+    .dtr table.dtr-table th,
+    .dtr table.dtr-table td {
+        height: 12pt;
+    }
+    .dtr .field { font-size: 8.5pt; line-height: 1.1; }
+    .dtr .cert { font-size: 6pt; margin-top: 1pt; }
 }
 
 /* Hide 4th copy (sample DTR) */
