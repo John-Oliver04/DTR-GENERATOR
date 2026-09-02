@@ -1,0 +1,1 @@
+export default function emptyHtml2Canvas() { throw new Error('html2canvas is not bundled'); }

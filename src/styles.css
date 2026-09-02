@@ -1,0 +1,574 @@
+/* ===========================================================
+   BASE
+   =========================================================== */
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    font-family: "Arial Narrow", Arial, sans-serif;
+    background: #eee;
+    color: #000;
+    padding-top: 88px; /* menu bar + weekend bar */
+}
+
+/* ===========================================================
+   MENU BAR
+   =========================================================== */
+.menu-bar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    background: #fff;
+    padding: 8px 16px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    border-bottom: 2px solid #999;
+}
+.menu-bar .spacer { flex: 1; }
+.menu-bar button {
+    padding: 8px 16px;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    font-weight: bold;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: opacity .15s;
+}
+.menu-bar button:hover { opacity: 0.88; }
+.menu-bar button svg { width: 14px; height: 14px; vertical-align: middle; margin-right: 4px; }
+.btn-template { background: #666; }
+.btn-details  { background: #1e7d43; }
+.btn-print    { background: #444; }
+.btn-pdf      { background: #16a085; }
+.btn-upload   {background: #0fd443}
+.btn-toggle4  { background: #2f9e44; }
+.btn-toggle4.hidden-mode { background: #1e7d43; }
+/* Pagination controls (inside weekend bar) */
+.wb-pager { display: flex; align-items: center; gap: 8px; }
+.pager {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.pager-btn {
+    background: #1e7d43;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 3px 12px;
+    font-size: 12px;
+    cursor: pointer;
+}
+.pager-btn:disabled { background: #8aa9a0; cursor: not-allowed; }
+.pager-label { font-size: 12px; color: #c8e8a8; font-weight: 600; white-space: nowrap; }
+/* Inline page-count badge, beside the weekend auto-detect text */
+.wb-page-badge {
+    background: #2f9e44;
+    color: #fff;
+    padding: 2px 12px;
+    border-radius: 12px;
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    white-space: nowrap;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+}
+.upload-status {
+    margin-left: 12px;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    color: #2d7d3f;
+    font-weight: bold;
+}
+.upload-status.error { color: #c0392b; }
+#fileInput {
+   display: none;
+}
+
+/* ===========================================================
+   TOAST POPUP
+   =========================================================== */
+.toast {
+    position: fixed;
+    right: 20px;
+    top: 96px;
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 380px;
+    background: #2d7d3f;
+    color: #fff;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    font-weight: bold;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.28);
+    animation: toast-in .2s ease-out;
+}
+.toast.error { background: #c0392b; }
+.toast-msg { word-break: break-word; }
+.toast-close {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 18px;
+    line-height: 1;
+    padding: 0 2px;
+    cursor: pointer;
+    opacity: .8;
+}
+.toast-close:hover { opacity: 1; }
+.toast-close svg { width: 14px; height: 14px; vertical-align: middle; }
+.wb-label svg, .modal-header svg, .modal-footer button svg { width: 14px; height: 14px; vertical-align: middle; margin-right: 4px; }
+@keyframes toast-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ===========================================================
+   WEEKEND SETTINGS BAR  (fixed, below menu bar)
+   =========================================================== */
+.weekend-bar {
+    position: fixed;
+    top: 48px; left: 0; right: 0;
+    z-index: 99;
+    background: #16402a;
+    border-bottom: 2px solid #2a6a44;
+    padding: 5px 16px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    box-shadow: 0 2px 5px rgba(0,0,0,.2);
+}
+.weekend-bar .wb-label {
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: #a8e0c0;
+    white-space: nowrap;
+}
+.weekend-bar .wb-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+/* Toggle pill */
+.wb-toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+}
+.wb-toggle-wrap input[type="checkbox"] {
+    width: 15px; height: 15px;
+    cursor: pointer;
+    accent-color: #2d7d3f;
+}
+.wb-toggle-wrap span {
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    color: #a8f0c8;
+}
+/* Day override pill buttons */
+.wb-day-btns { display: flex; gap: 4px; }
+.wb-day-btns button {
+    padding: 3px 9px;
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    border-radius: 3px;
+    border: 1px solid #3a5a3a;
+    background: #1e3a2a;
+    color: #a8e0c0;
+    cursor: pointer;
+    transition: background .12s;
+}
+.wb-day-btns button:hover { background: #2a5a44; }
+.wb-day-btns button.active-sat {
+    background: #c06020;
+    border-color: #f09040;
+    color: #fff;
+}
+.wb-day-btns button.active-sun {
+    background: #b03030;
+    border-color: #f06060;
+    color: #fff;
+}
+
+/* Period override section */
+.wb-period-list {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.wb-period-pill {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: #1a3d2a;
+    border: 1px solid #3a8a5a;
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-family: Arial, sans-serif;
+    font-size: 10px;
+}
+.wb-period-pill .pill-name {
+    font-weight: bold;
+    color: #c8f0d8;
+    white-space: nowrap;
+}
+.wb-period-pill .pill-btn {
+    padding: 1px 6px;
+    border-radius: 2px;
+    border: 1px solid #5a9a7a;
+    background: #143424;
+    color: #a8e0c0;
+    font-size: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.wb-period-pill .pill-btn:hover { background: #2a6a44; }
+.wb-period-pill .pill-btn.on-sat  { background: #a05010; border-color: #e07020; color: #fff; }
+.wb-period-pill .pill-btn.on-sun  { background: #902020; border-color: #e04040; color: #fff; }
+
+.wb-info {
+    font-family: Arial, sans-serif;
+    font-size: 10px;
+    color: #c8e8a8;
+    font-style: italic;
+    margin-left: auto;
+    white-space: nowrap;
+}
+
+/* ===========================================================
+   MODAL
+   =========================================================== */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+    background: #fff;
+    border-radius: 8px;
+    width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+.modal-header {
+    padding: 16px 20px;
+    background: #1e7d43;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    font-size: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    border-radius: 8px 8px 0 0;
+}
+.modal-header .close-modal {
+    background: none; border: none;
+    color: #fff; font-size: 22px; cursor: pointer; padding: 4px; line-height: 1;
+    display: flex; align-items: center;
+}
+.modal-header .close-modal svg { width: 16px; height: 16px; }
+.modal-body { padding: 20px; }
+.modal-body .form-row { margin-bottom: 12px; }
+.modal-body label {
+    display: block;
+    font-family: Arial, sans-serif;
+    font-size: 12px; font-weight: bold; margin-bottom: 4px;
+}
+.modal-body input[type="text"],
+.modal-body textarea {
+    width: 100%;
+    font-family: Arial, sans-serif;
+    font-size: 13px; padding: 6px 8px;
+    border: 1px solid #999; border-radius: 4px;
+}
+.modal-body textarea { min-height: 100px; font-family: monospace; font-size: 12px; }
+.modal-body .hint {
+    font-family: Arial, sans-serif; font-size: 10px;
+    color: #666; font-style: italic; margin-top: 4px;
+}
+.modal-footer {
+    padding: 12px 20px; border-top: 1px solid #ddd;
+    display: flex; gap: 8px; justify-content: flex-end;
+}
+.modal-footer button {
+    padding: 7px 18px; border: none; border-radius: 4px;
+    font-family: Arial, sans-serif; font-size: 13px;
+    font-weight: bold; cursor: pointer; color: #fff;
+}
+.btn-save   { background: #1e7d43; }
+.btn-cancel { background: #666; }
+.modal-dev {
+    padding: 8px 20px 12px;
+    text-align: center;
+    font-family: Arial, sans-serif; font-size: 10px; color: #999;
+}
+
+/* ── Password / Welcome access modals ─────────────────────── */
+.pw-page {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 200;
+    background: linear-gradient(135deg, #0f3d24 0%, #1e7d43 100%);
+    display: flex; align-items: center; justify-content: center;
+}
+.pw-card {
+    background: #fff;
+    border-radius: 12px;
+    width: 400px;
+    padding: 32px 32px 20px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+    text-align: center;
+    display: flex; flex-direction: column; align-items: center;
+}
+.pw-icon {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: #e8f5ee; color: #1e7d43;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 12px;
+}
+.pw-icon svg { width: 28px; height: 28px; }
+.pw-title {
+    font-family: Arial, sans-serif; font-size: 20px; color: #1e7d43;
+    margin: 0 0 8px;
+}
+.pw-text { font-family: Arial, sans-serif; font-size: 13px; color: #333; margin: 0 0 16px; }
+.pw-form { display: flex; flex-direction: column; align-items: center; width: 100%; gap: 10px; }
+.pw-input {
+    width: 100%; max-width: 260px;
+    padding: 9px 12px; border: 1px solid #999; border-radius: 5px;
+    font-family: Arial, sans-serif; font-size: 14px; text-align: center;
+}
+.pw-error {
+    font-family: Arial, sans-serif; font-size: 12px; color: #c0392b;
+    display: flex; align-items: center; gap: 5px; margin: 0;
+}
+.pw-error svg { width: 14px; height: 14px; }
+.pw-btn {
+    padding: 9px 26px; border: none; border-radius: 5px;
+    background: #1e7d43; color: #fff; font-family: Arial, sans-serif;
+    font-size: 14px; font-weight: bold; cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+    margin-top: 4px;
+}
+.pw-btn svg { width: 16px; height: 16px; }
+.welcome-body { font-family: Arial, sans-serif; font-size: 13px; color: #333; }
+.welcome-body p { margin: 0 0 10px; }
+.welcome-list { list-style: none; padding: 0; margin: 0 0 4px; }
+.welcome-list li {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 0; border-top: 1px solid #f0f0f0; font-size: 13px;
+}
+.welcome-list li svg { width: 16px; height: 16px; color: #1e7d43; }
+.modal-footer button svg { width: 15px; height: 15px; vertical-align: -2px; margin-right: 5px; }
+
+/* ===========================================================
+   DTR PAGE — Bond Paper 8.5 × 13, Landscape
+   =========================================================== */
+.page {
+    width: 14in;
+    height: 8.5in;
+    background: #fff;
+    margin: 20px auto;
+    padding: 0.08in;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0 0.32in;
+    page-break-after: always;
+    page-break-inside: avoid;
+    overflow: visible;
+    position: relative;
+}
+.page:last-child { page-break-after: auto; }
+
+.dtr {
+    display: flex;
+    flex-direction: column;
+    font-family: "Arial Narrow", Arial, sans-serif;
+    font-size: 10pt;
+    overflow: hidden;
+    position: relative;
+}
+.dtr::before {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0; right: -0.32in;
+    width: 0.32in;
+    background: repeating-linear-gradient(
+        to right,
+        #999 0, #999 1px,
+        transparent 1px, transparent 4px
+    );
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+.dtr .dtr-top {
+    border-right: 1px dashed #999;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+.dtr:last-child .dtr-top {
+    border-right: none;
+}
+
+.dtr .annex {
+    font-size: 10pt; font-weight: bold;
+    text-align: center; line-height: 1.1;
+}
+.dtr .title {
+    font-size: 10pt; font-weight: bold;
+    text-align: center; line-height: 1.1; margin-bottom: 2pt;
+}
+.dtr .field {
+    font-size: 9pt; line-height: 1.15; margin-bottom: 0;
+    display: flex; align-items: baseline; gap: 2pt;
+}
+.dtr .field .label { font-weight: bold; white-space: nowrap; flex-shrink: 0; }
+.dtr .field .value {
+    flex: 1;
+    border-bottom: 1px solid #000;
+    padding: 0 2pt 1pt 2pt;
+    min-height: 11pt;
+    font-size: 9pt;
+    overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.dtr .field .value.bold-field { font-weight: bold; }
+
+/* DTR Table */
+.dtr table.dtr-table {
+    width: 100%; border-collapse: collapse;
+    margin-top: 2.5pt; table-layout: fixed;
+    flex: 1;
+}
+.dtr table.dtr-table th,
+.dtr table.dtr-table td {
+    border: 1px solid #000;
+    padding: 0; text-align: center;
+    font-size: 9pt;
+}
+.dtr table.dtr-table th { font-weight: bold; font-size: 8pt; }
+.dtr table.dtr-table .date-col { width: 6%; }
+.dtr table.dtr-table .time-col { width: 26.75%; }
+.dtr table.dtr-table td.time-cell { font-weight: bold; }
+
+/* Weekend rows */
+.dtr table.dtr-table tr.weekend-row td {
+    color: #333;
+    font-size: 7pt;
+    font-style: italic;
+    font-weight: normal;
+    letter-spacing: 0.3px;
+}
+.dtr table.dtr-table tr.weekend-row td:first-child {
+    font-size: 8pt;
+    font-style: normal;
+    font-weight: bold;
+    color: #555;
+}
+/* Saturday = warm orange tint, Sunday = warm red tint */
+.dtr table.dtr-table tr.saturday-row td:first-child { color: #000000; }
+.dtr table.dtr-table tr.sunday-row td:first-child   { color: #000000; }
+
+/* Signature block */
+.dtr .cert {
+    font-size: 6.5pt; line-height: 1.1; margin-top: 2pt; text-align: justify;
+}
+.dtr .sig-block {
+    margin-top: 20pt; text-align: left;
+    font-size: 7pt; line-height: 1.1; padding-left: 3pt;
+}
+.dtr .sig-line {
+    border-top: 1px solid #000; width: 65%; margin: 6pt 0 0 0;
+}
+.dtr .sig-role { font-size: 6pt; line-height: 1.1; }
+.dtr .verified { font-size: 7pt; margin-top: 10pt; font-weight: bold; }
+.dtr .verifier { margin-top: 2pt; text-align: center; font-size: 6.5pt; line-height: 1.05; }
+.dtr .verifier-name { font-weight: bold; font-size: 7.5pt; }
+
+/* Sample copy signature */
+.dtr.sample .sig-line { border-top: 1px solid transparent; }
+.dtr.sample .sig-line::before {
+    content: "Permahan";
+    font-family: 'Brush Script MT', 'Lucida Handwriting', cursive;
+    font-size: 9pt; font-style: italic;
+    display: block; text-align: left;
+    margin-top: -6pt; padding-bottom: 2pt; padding-left: 4pt;
+    border-bottom: 1px solid #000; width: 65%;
+}
+
+/* ===========================================================
+   PRINT STYLES
+   =========================================================== */
+@media print {
+    @page { margin: 0.1in 0.1in 0.1in 0.1in; }
+    body { background: #fff; margin: 0; padding: 0; }
+    .menu-bar, .weekend-bar, .no-print { display: none !important; }
+    .page {
+        margin: 0; box-shadow: none;
+        width: 100%; height: 100%;
+        padding: 0.03in 0.06in;
+    }
+    .dtr { min-height: 100%; }
+    .dtr-top {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+    }
+    .dtr table.dtr-table {
+        flex: 1;
+        width: 100%;
+    }
+    .dtr table.dtr-table th,
+    .dtr table.dtr-table td {
+        height: auto;
+        padding: 0.5px 0;   /* +1px per row (0.5 top + 0.5 bottom) = +33px table height */
+    }
+    .dtr .field { font-size: 8.5pt; line-height: 1.1; }
+    .dtr .cert { font-size: 6pt; margin-top: 1pt; }
+}
+
+/* Hide 4th copy (sample DTR) */
+.hide-4th-copy .dtr.sample {
+    visibility: hidden;
+}
+@media print {
+    .hide-4th-copy .dtr.sample { display: none !important; }
+}
+   .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    text-align: center;
+    padding: 40px 20px;
+    color: #666;
+    font-family: Arial, sans-serif;
+}
+.empty-state h2 { color: #333; margin: 0 0 8px; }
+.empty-state p { margin: 4px 0; font-size: 14px; }
