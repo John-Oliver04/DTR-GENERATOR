@@ -207,7 +207,7 @@ function drawCard(pdf, cx, cy, w, h, data, weekendInfo, isSample) {
     if (isSample) {
         pdf.setFont('helvetica', 'bolditalic');
         pdf.setFontSize(9);
-        pdf.text('Permahan', left + 3, lineY - 2);
+        pdf.text('', left + 3, lineY - 2);
         pdf.setFont('helvetica', 'normal');
     }
     pdf.setFontSize(6);
